@@ -25,10 +25,29 @@ type state8080 {
 }
 
 
-//
-func initState8080(){
+func newState8080(){
+	cc := &conditionCodes{
+		z:0, 
+		s:0,
+		p:0,
+		cy:0,
+		ac:0,
+		pad:0,
 
-}
-func loadFileToMemoryAt(state state8080, filename string, ){
-
+	}
+	
+	return &state8080{
+		a: 0,
+		b: 0,
+		c: 0,
+		d: 0,
+		e: 0,
+		h: 0,
+		l: 0,
+		sp: 0,
+		pc: 0,
+		memory: make(uint8[], 16384, 16384),
+		cc: cc,
+		int_enable:0
+	}
 }
