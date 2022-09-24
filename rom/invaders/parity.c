@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-
+sdad
 
 int parity(int x, int size)
 {

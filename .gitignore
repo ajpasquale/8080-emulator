@@ -1,4 +1,5 @@
 rom/*
+rom/invaders/*
 # Binaries for programs and plugins
 *.exe
 *.exe~
