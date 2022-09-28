@@ -17,7 +17,6 @@ func TestCpu(t *testing.T) {
 }
 
 func TestParity(t *testing.T) {
-	// parity(x int, size int) int
 	tests := []struct {
 		in   int
 		want int
@@ -123,7 +122,6 @@ func TestParity(t *testing.T) {
 		{98, 0},
 		{99, 1},
 	}
-
 	for _, tt := range tests {
 		have := parity(tt.in, 8)
 		if !reflect.DeepEqual(have, tt.want) {
@@ -141,4 +139,78 @@ func TestInstructionINXB(t *testing.T) {
 	Emulate8080(state)
 	fmt.Printf("%x%x\n", state.b, state.c)
 
+}
+
+func TestInstructionRLC(t *testing.T) {
+	tests := []struct {
+		in   uint8
+		want []uint8
+	}{
+		{0x00, []uint8{0x00, 0}},
+		{0x35, []uint8{0x6a, 0}},
+		{0x95, []uint8{0x2b, 1}},
+		{0xFF, []uint8{0xFF, 1}},
+	}
+
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in
+		state.memory = append(state.memory, 0x07)
+		Emulate8080(state)
+		if !reflect.DeepEqual(state.a, tt.want[0]) {
+			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
+		}
+		if !reflect.DeepEqual(state.cc.cy, tt.want[1]) {
+			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[1])
+		}
+	}
+}
+
+func TestInstructionDADB(t *testing.T) {
+	tests := []struct {
+		in   []uint16
+		want []uint16
+	}{
+		//         H,L   +   B,C   =   HL
+		{[]uint16{0x2061, 0x4050}, []uint16{0x60B1, 1}},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.h, state.l = pairToBytes(tt.in[0])
+		state.b, state.c = pairToBytes(tt.in[1])
+		state.memory = append(state.memory, 0x09)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(bytesToPair(state.h, state.l), tt.want[0]) {
+			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
+		}
+		if !reflect.DeepEqual(state.cc.cy, uint8(tt.want[1])) {
+			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[1])
+		}
+	}
+}
+
+func TestInstructionRRC(t *testing.T) {
+	tests := []struct {
+		in   uint8
+		want []uint8
+	}{
+		{0x00, []uint8{0x0, 0}},
+		{0x8A, []uint8{0x45, 0}},
+		{0x81, []uint8{0x40, 1}},
+		{0xFF, []uint8{0x7F, 1}},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in
+		state.memory = append(state.memory, 0x0f)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want[0]) {
+			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+		if !reflect.DeepEqual(state.cc.cy, uint8(tt.want[1])) {
+			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want)
+		}
+	}
 }

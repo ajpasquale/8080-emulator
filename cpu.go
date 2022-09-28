@@ -55,6 +55,7 @@ func newState8080() *state8080 {
 		int_enable: 0,
 	}
 }
+
 func parity(x int, size int) int {
 	p := 0
 	x = (x & ((1 << size) - 1))
@@ -95,28 +96,56 @@ func Emulate8080(state *state8080) {
 		state.c = state.memory[state.pc]
 		state.pc++
 		state.b = state.memory[state.pc]
-		break
 	case 0x02: // STAX B
-		bc := uint16(state.b)<<8 | uint16(state.c)
+		bc := bytesToPair(state.b, state.c)
 		state.memory[bc] = state.a
 	case 0x03: // INX B
-		bc := uint16(state.b)<<8 | uint16(state.c)
+		bc := bytesToPair(state.b, state.c)
 		bc += 1
-		state.c = uint8(bc & 0x00FF)
-		// need to shift down to 1 byte otherwise you lose the higher byte
-		state.b = uint8(bc & 0xFF00 >> 8)
-	case 0x04:
-	case 0x05:
-	case 0x06:
-	case 0x07:
-	case 0x08:
-	case 0x09:
-	case 0x0a:
-	case 0x0b:
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
+		state.b, state.c = pairToBytes(bc)
+	case 0x04: // INR B
+		state.b++
+	case 0x05: // DCR B
+		state.b--
+	case 0x06: // MVI B
+		state.pc++
+		state.b = state.memory[state.pc]
+	case 0x07: // RLC
+		r, overflow := shiftLeft8(state.a, 1)
+		if overflow {
+			state.a = uint8(r + 1) // need to flip LSB from 0 to 1
+			state.cc.cy = 1
+		} else {
+			state.a = uint8(r)
+			state.cc.cy = 0
+		}
+	case 0x08: // -
+	case 0x09: // DAD B (BC+HL) -> HL
+		state.cc.cy = 0
+		bc := bytesToPair(state.b, state.c)
+		hl := bytesToPair(state.h, state.l)
+		r, ok := add16(bc, hl)
+		if !ok {
+			state.cc.cy = 1
+		}
+		state.h, state.l = pairToBytes(r)
+	case 0x0a: // LDAX B -> A
+		bc := bytesToPair(state.b, state.c)
+		state.a = state.memory[bc]
+	case 0x0b: // DCX B
+		bc := bytesToPair(state.b, state.c)
+		state.b, state.c = pairToBytes(bc - 1)
+	case 0x0c: // INR C
+		state.c++
+	case 0x0d: // DCR C
+		state.c--
+	case 0x0e: // MVI C
+		state.pc++
+		state.c = state.memory[state.pc]
+	case 0x0f: // RRC
+		r, cy := shiftRight8(state.a, 1)
+		state.a = r
+		state.cc.cy = cy
 	case 0x10:
 	case 0x11:
 	case 0x12:
