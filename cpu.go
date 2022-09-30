@@ -146,14 +146,35 @@ func Emulate8080(state *state8080) {
 		r, cy := shiftRight8(state.a, 1)
 		state.a = r
 		state.cc.cy = cy
-	case 0x10:
-	case 0x11:
-	case 0x12:
-	case 0x13:
+	case 0x10: // -
+	case 0x11: // LXI D
+		state.pc++
+		state.e = state.memory[state.pc]
+		state.pc++
+		state.d = state.memory[state.pc]
+	case 0x12: // STAX D
+		de := bytesToPair(state.d, state.e)
+		state.memory[de] = state.a
+	case 0x13: // INX D
+		de := bytesToPair(state.d, state.e)
+		de += 1
+		state.d, state.e = pairToBytes(de)
 	case 0x14:
+		state.d++
 	case 0x15:
-	case 0x16:
-	case 0x17:
+		state.d--
+	case 0x16: // "MVI D,", 2
+		state.pc++
+		state.d = state.memory[state.pc]
+	case 0x17: // "RAL", 1
+		// put previous carry bit at the end of state.a
+		r, overflow := shiftLeft8(state.a, 1)
+		state.a = uint8(r + state.cc.cy)
+		if overflow {
+			state.cc.cy = 1
+		} else {
+			state.cc.cy = 0
+		}
 	case 0x18:
 	case 0x19:
 	case 0x1a:

@@ -214,3 +214,33 @@ func TestInstructionRRC(t *testing.T) {
 		}
 	}
 }
+
+func TestInstructionRAL(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want []uint8
+	}{
+		{[]uint8{0x00, 0}, []uint8{0x0, 0}},
+		{[]uint8{0x00, 1}, []uint8{0x1, 0}},
+		{[]uint8{0x35, 0}, []uint8{0x6a, 0}},
+		{[]uint8{0x35, 1}, []uint8{0x6b, 0}},
+		{[]uint8{0x95, 0}, []uint8{0x2a, 1}},
+		{[]uint8{0x95, 1}, []uint8{0x2b, 1}},
+		{[]uint8{0xFF, 0}, []uint8{0xFE, 1}},
+		{[]uint8{0xFF, 1}, []uint8{0xFF, 1}},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.cc.cy = tt.in[1]
+		state.memory = append(state.memory, 0x17)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want[0]) {
+			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+		if !reflect.DeepEqual(state.cc.cy, uint8(tt.want[1])) {
+			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want)
+		}
+	}
+}
