@@ -89,7 +89,7 @@ func Emulate8080(state *state8080) {
 	state.pc++
 
 	switch opCode {
-	case 0x00:
+	case 0x0:
 		break
 	case 0x01: // LXI B
 		state.pc++
@@ -111,14 +111,9 @@ func Emulate8080(state *state8080) {
 		state.pc++
 		state.b = state.memory[state.pc]
 	case 0x07: // RLC
-		r, overflow := shiftLeft8(state.a, 1)
-		if overflow {
-			state.a = uint8(r + 1) // need to flip LSB from 0 to 1
-			state.cc.cy = 1
-		} else {
-			state.a = uint8(r)
-			state.cc.cy = 0
-		}
+		r, cb := shiftLeft8(state.a, 1)
+		state.a = uint8(r + cb)
+		state.cc.cy = cb
 	case 0x08: // -
 	case 0x09: // DAD B (BC+HL) -> HL
 		state.cc.cy = 0
@@ -159,42 +154,84 @@ func Emulate8080(state *state8080) {
 		de := bytesToPair(state.d, state.e)
 		de += 1
 		state.d, state.e = pairToBytes(de)
-	case 0x14:
+	case 0x14: // INR D
 		state.d++
-	case 0x15:
+	case 0x15: // DCR D
 		state.d--
 	case 0x16: // "MVI D,", 2
 		state.pc++
 		state.d = state.memory[state.pc]
 	case 0x17: // "RAL", 1
-		// put previous carry bit at the end of state.a
-		r, overflow := shiftLeft8(state.a, 1)
+		r, cb := shiftLeft8(state.a, 1)
 		state.a = uint8(r + state.cc.cy)
-		if overflow {
+		state.cc.cy = cb
+	case 0x18: // -
+	case 0x19: // DAD D (DE+HL) -> HL
+		state.cc.cy = 0
+		de := bytesToPair(state.d, state.e)
+		hl := bytesToPair(state.h, state.l)
+		r, ok := add16(de, hl)
+		if !ok {
 			state.cc.cy = 1
-		} else {
-			state.cc.cy = 0
 		}
-	case 0x18:
-	case 0x19:
-	case 0x1a:
-	case 0x1b:
-	case 0x1c:
+		state.h, state.l = pairToBytes(r)
+	case 0x1a: //LDAX D
+		de := bytesToPair(state.d, state.e)
+		state.a = state.memory[de]
+	case 0x1b: // DCX D
+		de := bytesToPair(state.d, state.e)
+		state.d, state.e = pairToBytes(de - 1)
+	case 0x1c: // INR E
+		state.e++
 	case 0x1d:
+		state.e--
 	case 0x1e:
-	case 0x1f:
-	case 0x20:
-	case 0x21:
-	case 0x22:
-	case 0x23:
-	case 0x24:
+		state.pc++
+		state.e = state.memory[state.pc]
+	case 0x1f: // RAR
+		r, lsb := shiftRight8(state.a, 1)
+		state.a = uint8(r + (state.cc.cy << 7))
+		state.cc.cy = lsb
+	case 0x20: // RIM ??
+	case 0x21: // LXI H
+		state.pc++
+		state.l = state.memory[state.pc]
+		state.pc++
+		state.h = state.memory[state.pc]
+	case 0x22: // SHLD
+		state.pc++
+		state.memory[state.pc] = state.l
+		state.pc++
+		state.memory[state.pc] = state.h
+	case 0x23: // INX H
+		hl := bytesToPair(state.h, state.l)
+		hl += 1
+		state.h, state.l = pairToBytes(hl)
+	case 0x24: // INR H
+		state.h++
 	case 0x25:
-	case 0x26:
-	case 0x27:
-	case 0x28:
-	case 0x29:
-	case 0x2a:
-	case 0x2b:
+		state.h--
+	case 0x26: // MVI H
+		state.pc++
+		state.d = state.memory[state.pc]
+	case 0x27: // DAA
+	case 0x28: // -
+	case 0x29: // DAD H (HL+HL) -> HL
+		state.cc.cy = 0
+		hl := bytesToPair(state.h, state.l)
+		r, ok := add16(hl, hl)
+		if !ok {
+			state.cc.cy = 1
+		}
+		state.h, state.l = pairToBytes(r)
+	case 0x2a: // LHLD
+		state.pc++
+		state.l = state.memory[state.pc]
+		state.pc++
+		state.h = state.memory[state.pc]
+	case 0x2b: // DCX H
+		hl := bytesToPair(state.h, state.l)
+		state.h, state.l = pairToBytes(hl - 1)
 	case 0x2c:
 	case 0x2d:
 	case 0x2e:
