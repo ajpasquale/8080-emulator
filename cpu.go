@@ -232,21 +232,62 @@ func Emulate8080(state *state8080) {
 	case 0x2b: // DCX H
 		hl := bytesToPair(state.h, state.l)
 		state.h, state.l = pairToBytes(hl - 1)
-	case 0x2c:
-	case 0x2d:
-	case 0x2e:
-	case 0x2f:
-	case 0x30:
-	case 0x31:
-	case 0x32:
-	case 0x33:
-	case 0x34:
-	case 0x35:
-	case 0x36:
-	case 0x37:
-	case 0x38:
-	case 0x39:
-	case 0x3a:
+	case 0x2c: // INR L
+		state.l++
+	case 0x2d: //  DCR L
+		state.l--
+	case 0x2e: // MVI L
+		state.pc++
+		state.l = state.memory[state.pc]
+	case 0x2f: // CMA needs work to update the flags register and check for overflow
+		state.a = state.a ^ 0xFF
+	case 0x30: // SIM ??
+	case 0x31: // LXI SP
+		state.pc++
+		p := state.memory[state.pc]
+		state.pc++
+		s := state.memory[state.pc]
+		state.sp = bytesToPair(s, p)
+	case 0x32: // STA
+		state.pc++
+		lo := state.memory[state.pc]
+		state.pc++
+		hi := state.memory[state.pc]
+		addr := bytesToPair(hi, lo)
+		state.memory[addr] = state.a
+	case 0x33: // INX SP
+		hl := bytesToPair(state.h, state.l)
+		hl += 1
+		state.h, state.l = pairToBytes(hl)
+	case 0x34: // INR M
+		m := bytesToPair(state.h, state.l)
+		state.memory[m]++
+	case 0x35: // DCR M
+		m := bytesToPair(state.h, state.l)
+		state.memory[m]--
+	case 0x36: // MVI M
+		state.pc++
+		m := bytesToPair(state.h, state.l)
+		state.memory[m] = state.memory[state.pc]
+	case 0x37: // STC
+		state.cc.cy = 1
+	case 0x38: // -
+	case 0x39: // DAD SP
+		state.cc.cy = 0
+		hl := bytesToPair(state.h, state.l)
+		sp := state.sp
+		r, ok := add16(hl, sp)
+		if !ok {
+			state.cc.cy = 1
+		}
+		state.h, state.l = pairToBytes(r)
+	case 0x3a: // LDA
+		state.pc++
+		lo := state.memory[state.pc]
+		state.pc++
+		hi := state.memory[state.pc]
+		m := bytesToPair(hi, lo)
+		state.a = state.memory[m]
 	case 0x3b:
 	case 0x3c:
 	case 0x3d:

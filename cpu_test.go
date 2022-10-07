@@ -267,10 +267,32 @@ func TestInstructionRAR(t *testing.T) {
 		Emulate8080(state)
 
 		if !reflect.DeepEqual(state.a, tt.want[0]) {
-			t.Errorf("TestInstructionRAL(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
+			t.Errorf("TestInstructionRAR(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
 		}
 		if !reflect.DeepEqual(state.cc.cy, uint8(tt.want[1])) {
-			t.Errorf("TestInstructionRAL(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[1])
+			t.Errorf("TestInstructionRAR(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[1])
+		}
+	}
+}
+
+func TestInstructionCMA(t *testing.T) {
+	tests := []struct {
+		in   uint8
+		want uint8
+	}{
+		{0x00, 0xFF},
+		{0xFF, 0x00},
+		{0xAA, 0x55},
+		{0x89, 0x76},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in
+		state.memory = append(state.memory, 0x2f)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionCMA(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
 		}
 	}
 }
