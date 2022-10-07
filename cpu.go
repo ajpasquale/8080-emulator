@@ -255,10 +255,8 @@ func Emulate8080(state *state8080) {
 		hi := state.memory[state.pc]
 		addr := bytesToPair(hi, lo)
 		state.memory[addr] = state.a
-	case 0x33: // INX SP
-		hl := bytesToPair(state.h, state.l)
-		hl += 1
-		state.h, state.l = pairToBytes(hl)
+	case 0x33: // INX SP NOT CORRECT!
+		state.sp++
 	case 0x34: // INR M
 		m := bytesToPair(state.h, state.l)
 		state.memory[m]++
@@ -288,35 +286,65 @@ func Emulate8080(state *state8080) {
 		hi := state.memory[state.pc]
 		m := bytesToPair(hi, lo)
 		state.a = state.memory[m]
-	case 0x3b:
-	case 0x3c:
-	case 0x3d:
-	case 0x3e:
-	case 0x3f:
-	case 0x40:
-	case 0x41:
-	case 0x42:
-	case 0x43:
-	case 0x44:
-	case 0x45:
-	case 0x46:
-	case 0x47:
-	case 0x48:
-	case 0x49:
-	case 0x4a:
-	case 0x4b:
-	case 0x4c:
-	case 0x4d:
-	case 0x4e:
-	case 0x4f:
-	case 0x50:
-	case 0x51:
-	case 0x52:
-	case 0x53:
-	case 0x54:
-	case 0x55:
-	case 0x56:
-	case 0x57:
+	case 0x3b: // DCX SP
+		state.sp--
+	case 0x3c: // INR A
+		state.a++
+	case 0x3d: // DCR A
+		state.a--
+	case 0x3e: // MVI A
+		state.pc++
+		state.a = state.memory[state.pc]
+	case 0x3f: // CMC
+		state.cc.cy--
+	case 0x40: // MOV B,B
+	case 0x41: // MOV B,C
+		state.b = state.c
+	case 0x42: // MOV B, D
+		state.b = state.d
+	case 0x43: // MOV B, E
+		state.b = state.e
+	case 0x44: // MOV B,H
+		state.b = state.h
+	case 0x45: // MOV B,L
+		state.b = state.l
+	case 0x46: // MOV B,M
+		addr := bytesToPair(state.h, state.l)
+		state.b = state.memory[addr]
+	case 0x47: // MOV B,A
+		state.b = state.a
+	case 0x48: // MOV C,B
+		state.c = state.b
+	case 0x49: // MOV C,C
+	case 0x4a: // MOV C,D
+		state.c = state.d
+	case 0x4b: // MOV C,E
+		state.c = state.e
+	case 0x4c: // MOV C,H
+		state.c = state.h
+	case 0x4d: // MOV C,L
+		state.c = state.l
+	case 0x4e: // MOV C,M
+		addr := bytesToPair(state.h, state.l)
+		state.c = state.memory[addr]
+	case 0x4f: // MOV C,A
+		state.c = state.a
+	case 0x50: // MOV D,B
+		state.d = state.b
+	case 0x51: // MOV D,C
+		state.d = state.c
+	case 0x52: // MOV D,D
+	case 0x53: // MOV D,E
+		state.d = state.e
+	case 0x54: // MOV D,H
+		state.d = state.h
+	case 0x55: // MOV D,L
+		state.d = state.l
+	case 0x56: // MOV D,M
+		addr := bytesToPair(state.h, state.l)
+		state.d = state.memory[addr]
+	case 0x57: // MOV D,A
+		state.d = state.a
 	case 0x58:
 	case 0x59:
 	case 0x5a:
