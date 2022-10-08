@@ -296,3 +296,28 @@ func TestInstructionCMA(t *testing.T) {
 		}
 	}
 }
+
+func TestInstructionADDB(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x00, 0x00}, 0x00},
+		{[]uint8{0x00, 0x01}, 0x01},
+		{[]uint8{0x01, 0x01}, 0x02},
+		{[]uint8{0x01, 0x0F}, 0x10},
+		{[]uint8{0xFF, 0x01}, 0x00},
+		{[]uint8{0xFF, 0x02}, 0x01},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.b = tt.in[1]
+		state.memory = append(state.memory, 0x80)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionADDB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}

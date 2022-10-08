@@ -21,3 +21,18 @@ func add16(a uint16, b uint16) (uint16, bool) {
 	overflow := (bits.Len32(r) > n)
 	return uint16(r), overflow
 }
+
+func setArthmeticFlags(state *state8080, result uint16) {
+	state.cc.ac = Btoi(result > 0xF)
+	state.cc.cy = Btoi(result > 0xFF)
+	state.cc.z = Btoi((result & 0xFF) == 0) // checking the first 8 bits is zero not the entire result.
+	state.cc.s = Btoi((result & 0x80) == 0x80)
+	state.cc.p = Btoi(bits.OnesCount8(uint8(result&0xFF))%2 == 0)
+}
+
+func Btoi(b bool) uint8 {
+	if b {
+		return 1
+	}
+	return 0
+}
