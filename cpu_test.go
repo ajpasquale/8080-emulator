@@ -129,6 +129,47 @@ func TestParity(t *testing.T) {
 		}
 	}
 }
+func TestSetArithmeticFlags(t *testing.T) {
+	tests := []struct {
+		in   uint16
+		want []uint8
+	}{
+		//Cy=0, AC=0, Z=0, P=0, S=0
+		{0x00, []uint8{0, 0, 1, 1, 0}},
+		{0x01, []uint8{0, 0, 0, 0, 0}},
+		{0xF, []uint8{0, 0, 0, 1, 0}},
+		{0x10, []uint8{0, 1, 0, 0, 0}},
+		{0xB9, []uint8{0, 1, 0, 0, 1}},
+		{0xFF, []uint8{0, 1, 0, 1, 1}},
+		{0x100, []uint8{1, 1, 1, 1, 0}},
+		{0x101, []uint8{1, 1, 0, 0, 0}},
+		{0xFFF, []uint8{1, 1, 0, 1, 1}},
+		{0xFFFF, []uint8{1, 1, 0, 1, 1}},
+	}
+
+	for _, tt := range tests {
+
+		state := newState8080()
+		setArthmeticFlags(state, tt.in)
+
+		if !reflect.DeepEqual(state.cc.cy, tt.want[0]) {
+			t.Errorf("TestSetArithmeticFlags(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[0])
+		}
+		if !reflect.DeepEqual(state.cc.ac, tt.want[1]) {
+			t.Errorf("TestSetArithmeticFlags(%q)\nhave %v \nwant %v", tt.in, state.cc.ac, tt.want[1])
+		}
+		if !reflect.DeepEqual(state.cc.z, tt.want[2]) {
+			t.Errorf("TestSetArithmeticFlags(%q)\nhave %v \nwant %v", tt.in, state.cc.z, tt.want[2])
+		}
+		if !reflect.DeepEqual(state.cc.p, tt.want[3]) {
+			t.Errorf("TestSetArithmeticFlags(%q)\nhave %v \nwant %v", tt.in, state.cc.p, tt.want[3])
+		}
+		if !reflect.DeepEqual(state.cc.s, tt.want[4]) {
+			t.Errorf("TestSetArithmeticFlags(%q)\nhave %v \nwant %v", tt.in, state.cc.s, tt.want[4])
+		}
+	}
+
+}
 
 func TestInstructionINXB(t *testing.T) {
 	state := newState8080()
@@ -308,6 +349,9 @@ func TestInstructionADDB(t *testing.T) {
 		{[]uint8{0x01, 0x0F}, 0x10},
 		{[]uint8{0xFF, 0x01}, 0x00},
 		{[]uint8{0xFF, 0x02}, 0x01},
+		{[]uint8{0x2E, 0x6C}, 0x9A},
+		{[]uint8{0xFF, 0x0F}, 0x0E},
+		{[]uint8{0xFF, 0xFF}, 0xFE},
 	}
 	for _, tt := range tests {
 		state := newState8080()
@@ -318,6 +362,50 @@ func TestInstructionADDB(t *testing.T) {
 
 		if !reflect.DeepEqual(state.a, tt.want) {
 			t.Errorf("TestInstructionADDB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestInstructionADCB(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x00, 0x00, 0}, 0x00},
+		{[]uint8{0x00, 0x00, 1}, 0x01},
+		{[]uint8{0x3D, 0x42, 0}, 0x7F},
+		{[]uint8{0x3D, 0x42, 1}, 0x80},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.b = tt.in[1]
+		state.cc.cy = tt.in[2]
+		state.memory = append(state.memory, 0x88)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionADDB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestSetAuxCarry(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x00, 0x00}, 0},
+		{[]uint8{0x16, 0x01}, 0},
+		{[]uint8{0x16, 0x08}, 0},
+		{[]uint8{0x0F, 0x01}, 1},
+		{[]uint8{0x3D, 0x42}, 0},
+		{[]uint8{0x3D, 0x43}, 1},
+	}
+	for _, tt := range tests {
+		have := setAuxCarry(tt.in[0], tt.in[1])
+		if !reflect.DeepEqual(have, tt.want) {
+			t.Errorf("TestSetAuxCarry(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
 		}
 	}
 }

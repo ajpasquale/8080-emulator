@@ -5,8 +5,8 @@ package emulator
 func pairToBytes(p uint16) (uint8, uint8) {
 	const n = 8
 	lo := uint8(p & 0x00FF)
-	hi := uint8((p & 0xFF00) >> 8)
 	// need to shift down to 1 byte otherwise you lose the higher byte
+	hi := uint8((p & 0xFF00) >> 8)
 	return hi, lo
 }
 

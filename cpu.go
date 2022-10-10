@@ -432,17 +432,28 @@ func Emulate8080(state *state8080) {
 		state.a = state.memory[addr]
 	case 0x7f: // MOV A, A
 	case 0x80: // ADD B
-		result := uint16(state.a) + uint16(state.b)
+		state.a = add8(state, state.a, state.b)
+	case 0x81: // ADD C
+		state.a = add8(state, state.a, state.c)
+	case 0x82: // ADD D
+		state.a = add8(state, state.a, state.d)
+	case 0x83: // ADD E
+		state.a = add8(state, state.a, state.e)
+	case 0x84: // ADD H
+		state.a = add8(state, state.a, state.h)
+	case 0x85: // ADD L
+		state.a = add8(state, state.a, state.l)
+	case 0x86: // ADD M
+		addr := bytesToPair(state.h, state.l)
+		m := state.memory[addr]
+
+		state.a = add8(state, state.a, m)
+	case 0x87: // ADD A
+		state.a = add8(state, state.a, state.a)
+	case 0x88: // ADC B
+		result := uint16(state.a) + uint16(state.b) + uint16(state.cc.cy)
 		setArthmeticFlags(state, result)
 		state.a = uint8(result & 0xFF)
-	case 0x81:
-	case 0x82:
-	case 0x83:
-	case 0x84:
-	case 0x85:
-	case 0x86:
-	case 0x87:
-	case 0x88:
 	case 0x89:
 	case 0x8a:
 	case 0x8b:
