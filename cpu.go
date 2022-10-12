@@ -451,17 +451,26 @@ func Emulate8080(state *state8080) {
 	case 0x87: // ADD A
 		state.a = add8(state, state.a, state.a)
 	case 0x88: // ADC B
-		result := uint16(state.a) + uint16(state.b) + uint16(state.cc.cy)
-		setArthmeticFlags(state, result)
-		state.a = uint8(result & 0xFF)
-	case 0x89:
-	case 0x8a:
-	case 0x8b:
-	case 0x8c:
-	case 0x8d:
-	case 0x8e:
-	case 0x8f:
-	case 0x90:
+		state.a = add8WithCarry(state, state.a, state.b)
+	case 0x89: // ADC C
+		state.a = add8WithCarry(state, state.a, state.c)
+	case 0x8a: // ADC D
+		state.a = add8WithCarry(state, state.a, state.d)
+	case 0x8b: // ADC E
+		state.a = add8WithCarry(state, state.a, state.e)
+	case 0x8c: // ADC H
+		state.a = add8WithCarry(state, state.a, state.h)
+	case 0x8d: // ADC L
+		state.a = add8WithCarry(state, state.a, state.l)
+	case 0x8e: // ADC M
+		addr := bytesToPair(state.h, state.l)
+		m := state.memory[addr]
+
+		state.a = add8WithCarry(state, state.a, m)
+	case 0x8f: // ADC A
+		state.a = add8WithCarry(state, state.a, state.a)
+	case 0x90: // SUB B
+		state.a = sub8(state, state.a, state.b)
 	case 0x91:
 	case 0x92:
 	case 0x93:

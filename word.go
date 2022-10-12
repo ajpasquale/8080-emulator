@@ -1,7 +1,5 @@
 package emulator
 
-//type word [2]uint8
-
 func pairToBytes(p uint16) (uint8, uint8) {
 	const n = 8
 	lo := uint8(p & 0x00FF)

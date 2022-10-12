@@ -129,6 +129,7 @@ func TestParity(t *testing.T) {
 		}
 	}
 }
+
 func TestSetArithmeticFlags(t *testing.T) {
 	tests := []struct {
 		in   uint16
@@ -155,9 +156,6 @@ func TestSetArithmeticFlags(t *testing.T) {
 		if !reflect.DeepEqual(state.cc.cy, tt.want[0]) {
 			t.Errorf("TestSetArithmeticFlags(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[0])
 		}
-		if !reflect.DeepEqual(state.cc.ac, tt.want[1]) {
-			t.Errorf("TestSetArithmeticFlags(%q)\nhave %v \nwant %v", tt.in, state.cc.ac, tt.want[1])
-		}
 		if !reflect.DeepEqual(state.cc.z, tt.want[2]) {
 			t.Errorf("TestSetArithmeticFlags(%q)\nhave %v \nwant %v", tt.in, state.cc.z, tt.want[2])
 		}
@@ -169,6 +167,26 @@ func TestSetArithmeticFlags(t *testing.T) {
 		}
 	}
 
+}
+
+func TestSetAuxCarry(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x00, 0x00}, 0},
+		{[]uint8{0x16, 0x01}, 0},
+		{[]uint8{0x16, 0x08}, 0},
+		{[]uint8{0x0F, 0x01}, 1},
+		{[]uint8{0x3D, 0x42}, 0},
+		{[]uint8{0x3D, 0x43}, 1},
+	}
+	for _, tt := range tests {
+		have := setAuxCarry(tt.in[0], tt.in[1])
+		if !reflect.DeepEqual(have, tt.want) {
+			t.Errorf("TestSetAuxCarry(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
+		}
+	}
 }
 
 func TestInstructionINXB(t *testing.T) {
@@ -374,6 +392,7 @@ func TestInstructionADCB(t *testing.T) {
 		{[]uint8{0x00, 0x00, 0}, 0x00},
 		{[]uint8{0x00, 0x00, 1}, 0x01},
 		{[]uint8{0x3D, 0x42, 0}, 0x7F},
+		{[]uint8{0x3E, 0xC1, 1}, 0x00},
 		{[]uint8{0x3D, 0x42, 1}, 0x80},
 	}
 	for _, tt := range tests {
@@ -385,27 +404,28 @@ func TestInstructionADCB(t *testing.T) {
 		Emulate8080(state)
 
 		if !reflect.DeepEqual(state.a, tt.want) {
-			t.Errorf("TestInstructionADDB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+			t.Errorf("TestInstructionADCB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
 		}
 	}
 }
 
-func TestSetAuxCarry(t *testing.T) {
+func TestInstructionSUBB(t *testing.T) {
 	tests := []struct {
 		in   []uint8
 		want uint8
 	}{
-		{[]uint8{0x00, 0x00}, 0},
-		{[]uint8{0x16, 0x01}, 0},
-		{[]uint8{0x16, 0x08}, 0},
-		{[]uint8{0x0F, 0x01}, 1},
-		{[]uint8{0x3D, 0x42}, 0},
-		{[]uint8{0x3D, 0x43}, 1},
+		{[]uint8{0x3E, 0x3E, 0}, 0x00},
+		{[]uint8{0x3E, 0x3E, 0}, 0x00},
 	}
 	for _, tt := range tests {
-		have := setAuxCarry(tt.in[0], tt.in[1])
-		if !reflect.DeepEqual(have, tt.want) {
-			t.Errorf("TestSetAuxCarry(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
+		state := newState8080()
+		state.a = tt.in[0]
+		state.b = tt.in[1]
+		state.memory = append(state.memory, 0x90)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionSUBB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
 		}
 	}
 }

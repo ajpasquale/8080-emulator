@@ -46,8 +46,31 @@ func add8(state *state8080, a, b uint8) uint8 {
 	return uint8(res & 0xFF)
 }
 
-func add8WithCarry()
+func add8WithCarry(state *state8080, a, b uint8) uint8 {
+	cy := state.cc.cy
+	res := add8(state, a, b)
+	res = add8(state, res, cy)
+	return res
+}
 
+func sub8(state *state8080, a, b uint8) uint8 {
+	// if no overflow then set carry
+	// aux carry, parity, zero are all set and sign is reset
+	state.cc.ac = setAuxCarry(a, b)
+	b = twosCompliment(b)
+	res := uint16(a) + uint16(b)
+	setArthmeticFlags(state, res)
+	if state.cc.cy == 1 {
+		state.cc.cy = 0
+	} else {
+		state.cc.cy = 1
+	}
+	return uint8(res & 0xFF)
+}
+
+func twosCompliment(a uint8) uint8 {
+	return ^a + 1
+}
 func Btoi(b bool) uint8 {
 	if b {
 		return 1
