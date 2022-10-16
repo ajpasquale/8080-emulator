@@ -414,7 +414,9 @@ func TestInstructionSUBB(t *testing.T) {
 		in   []uint8
 		want uint8
 	}{
-		{[]uint8{0x3E, 0x3E, 0}, 0x00},
+		{[]uint8{0x0A, 0x05, 0}, 0x05},
+		{[]uint8{0x02, 0x05, 0}, 0xFD},
+		{[]uint8{0xE5, 0x05, 0}, 0xE0},
 		{[]uint8{0x3E, 0x3E, 0}, 0x00},
 	}
 	for _, tt := range tests {
@@ -426,6 +428,56 @@ func TestInstructionSUBB(t *testing.T) {
 
 		if !reflect.DeepEqual(state.a, tt.want) {
 			t.Errorf("TestInstructionSUBB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestInstructionSBBB(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x04, 0x02, 1}, 0x01},
+		{[]uint8{0x3E, 0x3E, 0}, 0x00},
+		{[]uint8{0x04, 0x02, 0}, 0x02},
+		{[]uint8{0x3E, 0x3E, 1}, 0xFF},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.b = tt.in[1]
+		state.cc.cy = tt.in[2]
+		state.memory = append(state.memory, 0x98)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionSBBB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestInstructionCMPB(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want []uint8
+	}{
+		{[]uint8{0x0A, 0x05}, []uint8{0x0A, 0x05}},
+		{[]uint8{0x02, 0x05}, []uint8{0x02, 0x05}},
+		{[]uint8{0xE5, 0x05}, []uint8{0xE5, 0x05}},
+		{[]uint8{0x3E, 0x3E}, []uint8{0x3E, 0x3E}},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.b = tt.in[1]
+		state.memory = append(state.memory, 0xb8)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want[0]) {
+			t.Errorf("TestInstructionSUBB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
+		}
+		if !reflect.DeepEqual(state.b, tt.want[1]) {
+			t.Errorf("TestInstructionSUBB(%q)\nhave %v \nwant %v", tt.in, state.b, tt.want[1])
 		}
 	}
 }

@@ -28,7 +28,12 @@ func setArthmeticFlags(state *state8080, result uint16) {
 	state.cc.s = Btoi((result & 0x80) == 0x80)
 	state.cc.p = Btoi(bits.OnesCount8(uint8(result&0xFF))%2 == 0)
 }
-
+func setLogicFlags(state *state8080) {
+	state.cc.cy = 0
+	state.cc.ac = 0
+	state.cc.z = Btoi(state.a == 0)
+	state.cc.p = Btoi(bits.OnesCount8(uint8(state.a&0xFF))%2 == 0)
+}
 func setAuxCarry(a uint8, b uint8) uint8 {
 	a = a & 0xF
 	b = b & 0xF
@@ -68,6 +73,12 @@ func sub8(state *state8080, a, b uint8) uint8 {
 	return uint8(res & 0xFF)
 }
 
+func sub8WithBorrow(state *state8080, a, b uint8) uint8 {
+	cy := state.cc.cy
+	res := sub8(state, a, b)
+	res = sub8(state, res, cy)
+	return uint8(res & 0xFF)
+}
 func twosCompliment(a uint8) uint8 {
 	return ^a + 1
 }

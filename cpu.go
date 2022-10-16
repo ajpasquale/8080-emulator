@@ -471,60 +471,175 @@ func Emulate8080(state *state8080) {
 		state.a = add8WithCarry(state, state.a, state.a)
 	case 0x90: // SUB B
 		state.a = sub8(state, state.a, state.b)
-	case 0x91:
-	case 0x92:
-	case 0x93:
-	case 0x94:
-	case 0x95:
-	case 0x96:
-	case 0x97:
-	case 0x98:
-	case 0x99:
-	case 0x9a:
-	case 0x9b:
-	case 0x9c:
-	case 0x9d:
-	case 0x9e:
-	case 0x9f:
-	case 0xa0:
-	case 0xa1:
-	case 0xa2:
-	case 0xa3:
-	case 0xa4:
-	case 0xa5:
-	case 0xa6:
-	case 0xa7:
-	case 0xa8:
-	case 0xa9:
-	case 0xaa:
-	case 0xab:
-	case 0xac:
-	case 0xad:
-	case 0xae:
-	case 0xaf:
-	case 0xb0:
-	case 0xb1:
-	case 0xb2:
-	case 0xb3:
-	case 0xb4:
-	case 0xb5:
-	case 0xb6:
-	case 0xb7:
-	case 0xb8:
-	case 0xb9:
-	case 0xba:
-	case 0xbb:
-	case 0xbc:
-	case 0xbd:
-	case 0xbe:
-	case 0xbf:
-	case 0xc0:
-	case 0xc1:
-	case 0xc2:
-	case 0xc3:
-	case 0xc4:
-	case 0xc5:
-	case 0xc6:
+	case 0x91: // SUB C
+		state.a = sub8(state, state.a, state.c)
+	case 0x92: // SUB D
+		state.a = sub8(state, state.a, state.d)
+	case 0x93: // SUB E
+		state.a = sub8(state, state.a, state.e)
+	case 0x94: // SUB H
+		state.a = sub8(state, state.a, state.h)
+	case 0x95: // SUB L
+		state.a = sub8(state, state.a, state.l)
+	case 0x96: // SUB H
+		addr := bytesToPair(state.h, state.l)
+		m := state.memory[addr]
+		state.a = sub8(state, state.a, m)
+	case 0x97: // SUB M
+		state.a = sub8(state, state.a, state.a)
+	case 0x98: // SBB B
+		state.a = sub8WithBorrow(state, state.a, state.b)
+	case 0x99: // SBB C
+		state.a = sub8WithBorrow(state, state.a, state.c)
+	case 0x9a: // SBB D
+		state.a = sub8WithBorrow(state, state.a, state.d)
+	case 0x9b: // SBB E
+		state.a = sub8WithBorrow(state, state.a, state.e)
+	case 0x9c: // SBB H
+		state.a = sub8WithBorrow(state, state.a, state.h)
+	case 0x9d: // SBB L
+		state.a = sub8WithBorrow(state, state.a, state.l)
+	case 0x9e: // SBB M
+		addr := bytesToPair(state.h, state.l)
+		m := state.memory[addr]
+		state.a = sub8WithBorrow(state, state.a, m)
+	case 0x9f: // SBB A
+		state.a = sub8WithBorrow(state, state.a, state.a)
+	case 0xa0: // ANA B
+		state.a = state.a & state.b
+		setLogicFlags(state)
+	case 0xa1: // ANA C
+		state.a = state.a & state.c
+		setLogicFlags(state)
+	case 0xa2: // ANA D
+		state.a = state.a & state.d
+		setLogicFlags(state)
+	case 0xa3: // ANA E
+		state.a = state.a & state.e
+		setLogicFlags(state)
+	case 0xa4: // ANA H
+		state.a = state.a & state.h
+		setLogicFlags(state)
+	case 0xa5: // ANA L
+		state.a = state.a & state.l
+		setLogicFlags(state)
+	case 0xa6: // ANA M
+		addr := bytesToPair(state.h, state.l)
+		m := state.memory[addr]
+
+		state.a = state.a & m
+		setLogicFlags(state)
+	case 0xa7: // ANA A
+		state.a = state.a & state.a
+		setLogicFlags(state)
+	case 0xa8: // XRA B
+		state.a = state.a ^ state.b
+		setLogicFlags(state)
+	case 0xa9: // XRA C
+		state.a = state.a ^ state.c
+		setLogicFlags(state)
+	case 0xaa: // XRA D
+		state.a = state.a ^ state.d
+		setLogicFlags(state)
+	case 0xab: // XRA E
+		state.a = state.a ^ state.e
+		setLogicFlags(state)
+	case 0xac: // XRA H
+		state.a = state.a ^ state.h
+		setLogicFlags(state)
+	case 0xad: // XRA L
+		state.a = state.a ^ state.l
+		setLogicFlags(state)
+	case 0xae: // XRA M
+		addr := bytesToPair(state.h, state.l)
+		m := state.memory[addr]
+
+		state.a = state.a ^ m
+		setLogicFlags(state)
+	case 0xaf: // XRA A
+		state.a = state.a ^ state.a
+		setLogicFlags(state)
+	case 0xb0: // ORA B
+		state.a = state.a | state.b
+		setLogicFlags(state)
+	case 0xb1: // ORA C
+		state.a = state.a | state.c
+		setLogicFlags(state)
+	case 0xb2: // ORA D
+		state.a = state.a | state.d
+		setLogicFlags(state)
+	case 0xb3: // ORA E
+		state.a = state.a | state.e
+		setLogicFlags(state)
+	case 0xb4: // ORA H
+		state.a = state.a | state.h
+		setLogicFlags(state)
+	case 0xb5: // ORA L
+		state.a = state.a | state.l
+		setLogicFlags(state)
+	case 0xb6: // ORA M
+		addr := bytesToPair(state.h, state.l)
+		m := state.memory[addr]
+
+		state.a = state.a | m
+	case 0xb7: // ORA A
+		state.a = state.a | state.a
+		setLogicFlags(state)
+	case 0xb8: // CMP B
+		// if rp > a then zero reset & carry set
+		// if rp < a then zero reset & carry reset
+		// if rp == a then zero is set & carry reset
+		sub8(state, state.a, state.b)
+	case 0xb9: // CMP C
+		sub8(state, state.a, state.c)
+	case 0xba: // CMP D
+		sub8(state, state.a, state.d)
+	case 0xbb: // CMP E
+		sub8(state, state.a, state.e)
+	case 0xbc: // CMP H
+		sub8(state, state.a, state.h)
+	case 0xbd: // CMP L
+		sub8(state, state.a, state.l)
+	case 0xbe: // CMP M
+		addr := bytesToPair(state.h, state.l)
+		m := state.memory[addr]
+
+		sub8(state, state.a, m)
+	case 0xbf: // CMP A
+		sub8(state, state.a, state.a)
+	case 0xc0: // RNZ
+		if state.cc.z == 0 {
+			state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
+			state.sp += 2
+		}
+	case 0xc1: // POP B
+		state.l = state.memory[state.sp]
+		state.h = state.memory[state.sp+1]
+		state.sp += 2
+	case 0xc2: // JNZ
+		if state.cc.z == 0 {
+			state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
+		} else {
+			state.pc += 2
+		}
+	case 0xc3: // JMP
+		state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
+	case 0xc4: // CNZ
+		if state.cc.z == 1 {
+			ret := state.pc + 2
+			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			state.sp -= 2
+			hi := state.memory[state.pc+2]
+			lo := state.memory[state.pc+1]
+			state.pc = bytesToPair(hi, lo)
+		} else {
+			state.pc += 2
+		}
+	case 0xc5: // PUSH B
+		state.memory[state.sp-1] = state.b
+		state.memory[state.sp-2] = state.c
+		state.sp -= 2
+	case 0xc6: // ADI
 	case 0xc7:
 	case 0xc8:
 	case 0xc9:
