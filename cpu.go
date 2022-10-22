@@ -613,8 +613,8 @@ func Emulate8080(state *state8080) {
 			state.sp += 2
 		}
 	case 0xc1: // POP B
-		state.l = state.memory[state.sp]
-		state.h = state.memory[state.sp+1]
+		state.c = state.memory[state.sp]
+		state.b = state.memory[state.sp+1]
 		state.sp += 2
 	case 0xc2: // JNZ
 		if state.cc.z == 0 {
@@ -640,62 +640,218 @@ func Emulate8080(state *state8080) {
 		state.memory[state.sp-2] = state.c
 		state.sp -= 2
 	case 0xc6: // ADI
-	case 0xc7:
-	case 0xc8:
-	case 0xc9:
-	case 0xca:
-	case 0xcb:
-	case 0xcc:
-	case 0xcd:
-	case 0xce:
-	case 0xcf:
-	case 0xd0:
-	case 0xd1:
-	case 0xd2:
-	case 0xd3:
-	case 0xd4:
-	case 0xd5:
-	case 0xd6:
-	case 0xd7:
-	case 0xd8:
-	case 0xd9:
-	case 0xda:
-	case 0xdb:
-	case 0xdc:
-	case 0xdd:
-	case 0xde:
-	case 0xdf:
-	case 0xe0:
-	case 0xe1:
-	case 0xe2:
-	case 0xe3:
-	case 0xe4:
-	case 0xe5:
-	case 0xe6:
-	case 0xe7:
-	case 0xe8:
-	case 0xe9:
-	case 0xea:
-	case 0xeb:
-	case 0xec:
-	case 0xed:
-	case 0xee:
-	case 0xef:
-	case 0xf0:
-	case 0xf1:
-	case 0xf2:
-	case 0xf3:
-	case 0xf4:
-	case 0xf5:
-	case 0xf6:
-	case 0xf7:
-	case 0xf8:
-	case 0xf9:
-	case 0xfa:
-	case 0xfb:
-	case 0xfc:
-	case 0xfd:
-	case 0xfe:
-	case 0xff:
+	case 0xc7: // RST 0
+	case 0xc8: // RZ
+		if state.cc.z == 1 {
+			state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
+			state.sp += 2
+		}
+	case 0xc9: // RET
+		state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
+		state.sp += 2
+	case 0xca: // JZ
+		if state.cc.z == 1 {
+			state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
+		} else {
+			state.pc += 2
+		}
+	case 0xcb: // -
+	case 0xcc: // CZ
+		if state.cc.z == 0 {
+			ret := state.pc + 2
+			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			state.sp -= 2
+			hi := state.memory[state.pc+2]
+			lo := state.memory[state.pc+1]
+			state.pc = bytesToPair(hi, lo)
+		} else {
+			state.pc += 2
+		}
+	case 0xcd: // CALL
+		ret := state.pc + 2
+		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+		state.sp -= 2
+		hi := state.memory[state.pc+2]
+		lo := state.memory[state.pc+1]
+		state.pc = bytesToPair(hi, lo)
+	case 0xce: // ACI
+	case 0xcf: // RST 1
+	case 0xd0: // RNC
+		if state.cc.cy == 0 {
+			state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
+			state.sp += 2
+		}
+	case 0xd1: // POP D
+		state.e = state.memory[state.sp]
+		state.d = state.memory[state.sp+1]
+		state.sp += 2
+	case 0xd2: // JNC
+		if state.cc.cy == 0 {
+			state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
+		} else {
+			state.pc += 2
+		}
+	case 0xd3: // OUT
+	case 0xd4: // CNC
+		if state.cc.cy == 0 {
+			ret := state.pc + 2
+			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			state.sp -= 2
+			hi := state.memory[state.pc+2]
+			lo := state.memory[state.pc+1]
+			state.pc = bytesToPair(hi, lo)
+		} else {
+			state.pc += 2
+		}
+	case 0xd5: // PUSH D
+		state.memory[state.sp-1] = state.d
+		state.memory[state.sp-2] = state.e
+		state.sp -= 2
+	case 0xd6: // SUI
+	case 0xd7: // RST 2
+	case 0xd8: // RC
+		if state.cc.cy == 1 {
+			state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
+			state.sp += 2
+		}
+	case 0xd9: // -
+	case 0xda: // JC
+		if state.cc.cy == 1 {
+			state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
+		} else {
+			state.pc += 2
+		}
+	case 0xdb: // IN
+	case 0xdc: // CC
+	case 0xdd: // -
+	case 0xde: // SBI
+	case 0xdf: // RST 3
+	case 0xe0: // RPO
+		if state.cc.p == 0 {
+			state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
+			state.sp += 2
+		}
+	case 0xe1: // POP H
+		state.l = state.memory[state.sp]
+		state.h = state.memory[state.sp+1]
+		state.sp += 2
+	case 0xe2: // JPO
+		if state.cc.p == 0 {
+			state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
+		} else {
+			state.pc += 2
+		}
+	case 0xe3: // XTHL
+	case 0xe4: // CPO
+		if state.cc.p == 0 {
+			ret := state.pc + 2
+			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			state.sp -= 2
+			hi := state.memory[state.pc+2]
+			lo := state.memory[state.pc+1]
+			state.pc = bytesToPair(hi, lo)
+		} else {
+			state.pc += 2
+		}
+	case 0xe5: // PUSH H
+		state.memory[state.sp-1] = state.h
+		state.memory[state.sp-2] = state.l
+		state.sp -= 2
+	case 0xe6: // ANI
+		state.a = state.a & state.memory[state.pc+1]
+		setLogicFlags(state)
+		state.pc++
+	case 0xe7: // RST 4
+	case 0xe8: // RPE
+		if state.cc.p == 1 {
+			state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
+			state.sp += 2
+		}
+	case 0xe9: // PCHL
+		state.pc = bytesToPair(state.h, state.l)
+	case 0xea: // JPE
+		if state.cc.p == 1 {
+			state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
+		} else {
+			state.pc += 2
+		}
+	case 0xeb: // XCHG
+	case 0xec: // CPE
+		if state.cc.p == 1 {
+			ret := state.pc + 2
+			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			state.sp -= 2
+			hi := state.memory[state.pc+2]
+			lo := state.memory[state.pc+1]
+			state.pc = bytesToPair(hi, lo)
+		} else {
+			state.pc += 2
+		}
+	case 0xed: // -
+	case 0xee: // XRI
+		state.a = state.a & state.memory[state.pc+1]
+		setLogicFlags(state)
+		state.pc++
+	case 0xef: // RST 5
+	case 0xf0: // RP
+		if state.cc.s == 0 {
+			state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
+			state.sp += 2
+		}
+	case 0xf1: // POP PSW
+	case 0xf2: // JP
+		if state.cc.s == 0 {
+			state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
+		} else {
+			state.pc += 2
+		}
+	case 0xf3: // DI - 01 Disable Interrupts
+	case 0xf4: // CP
+		if state.cc.s == 0 {
+			ret := state.pc + 2
+			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			state.sp -= 2
+			hi := state.memory[state.pc+2]
+			lo := state.memory[state.pc+1]
+			state.pc = bytesToPair(hi, lo)
+		} else {
+			state.pc += 2
+		}
+	case 0xf5: // PUSH PSW
+	case 0xf6: // ORI
+		state.a = state.a | state.memory[state.pc+1]
+		setLogicFlags(state)
+		state.pc++
+	case 0xf7: // RST 6
+	case 0xf8: // RM
+		if state.cc.s == 1 {
+			state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
+			state.sp += 2
+		}
+	case 0xf9: // SPHL
+		state.sp = bytesToPair(state.h, state.l)
+	case 0xfa: // JP
+		if state.cc.s == 1 {
+			state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
+		} else {
+			state.pc += 2
+		}
+	case 0xfb: // EI - EI Enable Interrupts
+	case 0xfc: // CM
+		if state.cc.s == 1 {
+			ret := state.pc + 2
+			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			state.sp -= 2
+			hi := state.memory[state.pc+2]
+			lo := state.memory[state.pc+1]
+			state.pc = bytesToPair(hi, lo)
+		} else {
+			state.pc += 2
+		}
+	case 0xfd: // -
+	case 0xfe: // CPI
+		sub8(state, state.a, state.memory[state.pc+1])
+		state.pc++
+	case 0xff: // RST 7
 	}
 }
