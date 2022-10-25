@@ -10,10 +10,22 @@ func TestCpu(t *testing.T) {
 
 	state := newState8080()
 
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.h", 0)
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.g", 0x800)
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.f", 0x1000)
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.e", 0x1800)
+	//    0000-1FFF 8K ROM
+	//    2000-23FF 1K RAM
+	//    2400-3FFF 7K Video RAM
+	//    4000- RAM mirror
+
+	loadFileIntoMemoryAt(state, "rom/invaders/invaders.h", 0x0)    // 0000-07FF
+	loadFileIntoMemoryAt(state, "rom/invaders/invaders.g", 0x800)  // 0800-0FFF
+	loadFileIntoMemoryAt(state, "rom/invaders/invaders.f", 0x1000) // 1000-17FF
+	loadFileIntoMemoryAt(state, "rom/invaders/invaders.e", 0x1800) // 1800-1FFF
+	for i := 0; i < 8193; i++ {
+		state.memory = append(state.memory, 0xFF)
+	}
+	for i := 0; ; i++ {
+		Emulate8080(state)
+	}
+
 }
 
 func TestParity(t *testing.T) {
@@ -478,6 +490,96 @@ func TestInstructionCMPB(t *testing.T) {
 		}
 		if !reflect.DeepEqual(state.b, tt.want[1]) {
 			t.Errorf("TestInstructionSUBB(%q)\nhave %v \nwant %v", tt.in, state.b, tt.want[1])
+		}
+	}
+}
+
+func TestInstructionLXI(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want []uint8
+	}{
+		//       instr, op1, op2           hi byte, lo byte
+		{[]uint8{0x01, 0xAD, 0xDE}, []uint8{0xDE, 0xAD}},
+		{[]uint8{0x11, 0xAD, 0xDE}, []uint8{0xDE, 0xAD}},
+		{[]uint8{0x21, 0xAD, 0xDE}, []uint8{0xDE, 0xAD}},
+		{[]uint8{0x31, 0xAD, 0xDE}, []uint8{0xDE, 0xAD}},
+	}
+	for _, tt := range tests {
+		var hi uint8
+		var lo uint8
+		state := newState8080()
+		state.memory = append(state.memory, tt.in[0])
+		state.memory = append(state.memory, tt.in[1])
+		state.memory = append(state.memory, tt.in[2])
+		Emulate8080(state)
+
+		switch tt.in[0] {
+		case 0x01:
+			hi = state.b
+			lo = state.c
+		case 0x11:
+			hi = state.d
+			lo = state.e
+		case 0x21:
+			hi = state.h
+			lo = state.l
+		case 0x31:
+			hi, lo = pairToBytes(state.sp)
+		}
+
+		if !reflect.DeepEqual(hi, tt.want[0]) {
+			t.Errorf("TestInstructionLXI Hi(%q)\nhave %v \nwant %v", tt.in, hi, tt.want[0])
+		}
+		if !reflect.DeepEqual(lo, tt.want[1]) {
+			t.Errorf("TestInstructionLXI Lo(%q)\nhave %v \nwant %v", tt.in, lo, tt.want[1])
+		}
+	}
+}
+
+func TestInstructionMVI(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want []uint8
+	}{
+		//       instr, op1
+		{[]uint8{0x06, 0xAD}, []uint8{0xAD}},
+		{[]uint8{0x0E, 0xAD}, []uint8{0xAD}},
+		{[]uint8{0x16, 0xAD}, []uint8{0xAD}},
+		{[]uint8{0x1E, 0xAD}, []uint8{0xAD}},
+		{[]uint8{0x26, 0xAD}, []uint8{0xAD}},
+		{[]uint8{0x2E, 0xAD}, []uint8{0xAD}},
+		{[]uint8{0x3E, 0xAD}, []uint8{0xAD}},
+	}
+	for _, tt := range tests {
+		var hi uint8
+
+		state := newState8080()
+
+		state.memory = append(state.memory, tt.in[0])
+		state.memory = append(state.memory, tt.in[1])
+
+		Emulate8080(state)
+
+		switch tt.in[0] {
+		case 0x06: // MVI B
+			hi = state.b
+		case 0x0E: // MVI C
+			hi = state.c
+		case 0x16: // MVI D
+			hi = state.d
+		case 0x1E: // MVI E
+			hi = state.e
+		case 0x26: // MVI H
+			hi = state.h
+		case 0x2E: // MVI L
+			hi = state.l
+		case 0x3E: // MVI A
+			hi = state.a
+		}
+
+		if !reflect.DeepEqual(hi, tt.want[0]) {
+			t.Errorf("TestInstructionMVI Hi(%x)\nhave %v \nwant %v", tt.in[0], hi, tt.want[0])
 		}
 	}
 }
