@@ -28,12 +28,14 @@ func setArthmeticFlags(state *state8080, result uint16) {
 	state.cc.s = Btoi((result & 0x80) == 0x80)
 	state.cc.p = Btoi(bits.OnesCount8(uint8(result&0xFF))%2 == 0)
 }
+
 func setLogicFlags(state *state8080) {
 	state.cc.cy = 0
 	state.cc.ac = 0
 	state.cc.z = Btoi(state.a == 0)
 	state.cc.p = Btoi(bits.OnesCount8(uint8(state.a&0xFF))%2 == 0)
 }
+
 func setAuxCarry(a uint8, b uint8) uint8 {
 	a = a & 0xF
 	b = b & 0xF
@@ -42,6 +44,26 @@ func setAuxCarry(a uint8, b uint8) uint8 {
 		return 1
 	}
 	return 0
+}
+
+func setPSW(state *state8080) uint8 {
+	// S Z K A - P V C
+	psw := (state.cc.s << 7) |
+		(state.cc.z << 6) |
+		(state.cc.ac << 4) |
+		(state.cc.p << 2) |
+		(state.cc.cy)
+
+	return psw
+}
+
+func setFlagsFromPSW(state *state8080, psw uint8) {
+	// S Z K A - P V C
+	state.cc.s = Btoi(0x80 == (psw & 0x80))  // bit 7 0x80
+	state.cc.z = Btoi(0x40 == (psw & 0x40))  // bit 6 0x40
+	state.cc.ac = Btoi(0x10 == (psw & 0x10)) // bit 4 0x10
+	state.cc.p = Btoi(0x04 == (psw & 0x04))  // bit 2 0x04
+	state.cc.cy = Btoi(0x01 == (psw & 0x01)) // bit 0 0x01
 }
 
 func add8(state *state8080, a, b uint8) uint8 {

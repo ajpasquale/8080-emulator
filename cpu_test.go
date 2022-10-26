@@ -2,6 +2,7 @@ package emulator
 
 import (
 	"fmt"
+	"math/bits"
 	"reflect"
 	"testing"
 )
@@ -30,8 +31,8 @@ func TestCpu(t *testing.T) {
 
 func TestParity(t *testing.T) {
 	tests := []struct {
-		in   int
-		want int
+		in   uint8
+		want uint8
 	}{
 		{0, 1},
 		{1, 0},
@@ -135,7 +136,8 @@ func TestParity(t *testing.T) {
 		{99, 1},
 	}
 	for _, tt := range tests {
-		have := parity(tt.in, 8)
+		//Btoi(bits.OnesCount8(uint8(result&0xFF))%2 == 0)
+		have := Btoi(bits.OnesCount8(uint8(tt.in&0xFF))%2 == 0)
 		if !reflect.DeepEqual(have, tt.want) {
 			t.Errorf("parity(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
 		}
@@ -582,4 +584,79 @@ func TestInstructionMVI(t *testing.T) {
 			t.Errorf("TestInstructionMVI Hi(%x)\nhave %v \nwant %v", tt.in[0], hi, tt.want[0])
 		}
 	}
+}
+
+func TestInstructionSetPSW(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		// S Z K A - P V C
+		{[]uint8{0, 0, 0, 0, 0}, 0x00},
+		{[]uint8{0, 0, 0, 0, 1}, 0x01},
+		{[]uint8{0, 0, 0, 1, 0}, 0x04},
+		{[]uint8{0, 0, 1, 0, 0}, 0x10},
+		{[]uint8{0, 1, 0, 0, 0}, 0x40},
+		{[]uint8{1, 0, 0, 0, 0}, 0x80},
+		{[]uint8{1, 1, 0, 0, 1}, 0xC1},
+		{[]uint8{1, 1, 1, 1, 1}, 0xD5},
+	}
+
+	for _, tt := range tests {
+
+		state := newState8080()
+		state.cc.s = tt.in[0]
+		state.cc.z = tt.in[1]
+		state.cc.ac = tt.in[2]
+		state.cc.p = tt.in[3]
+		state.cc.cy = tt.in[4]
+		have := setPSW(state)
+
+		if !reflect.DeepEqual(have, tt.want) {
+			t.Errorf("TestInstructionSetPSW(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
+		}
+
+	}
+
+}
+
+func TestInstructionSetFlagsFromPSW(t *testing.T) {
+	tests := []struct {
+		in   uint8
+		want []uint8
+	}{
+		// S Z K A - P V C
+		{0x00, []uint8{0, 0, 0, 0, 0}},
+		{0x01, []uint8{0, 0, 0, 0, 1}},
+		{0x04, []uint8{0, 0, 0, 1, 0}},
+		{0x10, []uint8{0, 0, 1, 0, 0}},
+		{0x40, []uint8{0, 1, 0, 0, 0}},
+		{0x80, []uint8{1, 0, 0, 0, 0}},
+		{0xC1, []uint8{1, 1, 0, 0, 1}},
+		{0xD5, []uint8{1, 1, 1, 1, 1}},
+	}
+
+	for _, tt := range tests {
+
+		state := newState8080()
+		psw := uint8(tt.in)
+		setFlagsFromPSW(state, psw)
+
+		if !reflect.DeepEqual(state.cc.s, tt.want[0]) {
+			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[0])
+		}
+		if !reflect.DeepEqual(state.cc.z, tt.want[1]) {
+			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.z, tt.want[1])
+		}
+		if !reflect.DeepEqual(state.cc.ac, tt.want[2]) {
+			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.p, tt.want[2])
+		}
+		if !reflect.DeepEqual(state.cc.p, tt.want[3]) {
+			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.s, tt.want[3])
+		}
+		if !reflect.DeepEqual(state.cc.cy, tt.want[4]) {
+			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.s, tt.want[4])
+		}
+	}
+
 }

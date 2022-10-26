@@ -56,23 +56,6 @@ func newState8080() *state8080 {
 	}
 }
 
-func parity(x int, size int) int {
-	p := 0
-	x = (x & ((1 << size) - 1))
-
-	for i := 0; i < size; i++ {
-		if x&0x1 == 1 {
-			p++
-		}
-		x = x >> 1
-	}
-	if 0 == (p & 0x1) {
-		return 1
-	}
-	return 0
-
-}
-
 func loadFileIntoMemoryAt(state *state8080, file string, offset int) {
 	bs, err := os.ReadFile(file)
 	if err != nil {
@@ -835,7 +818,10 @@ func Emulate8080(state *state8080) {
 			state.sp += 2
 		}
 	case 0xf1: // POP PSW
-		fmt.Println(opCode, "POP PSW")
+		state.a = state.memory[state.sp]
+		psw := state.memory[state.sp+1]
+		setFlagsFromPSW(state, psw)
+		state.sp += 2
 	case 0xf2: // JP
 		if state.cc.s == 0 {
 			state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
@@ -857,7 +843,10 @@ func Emulate8080(state *state8080) {
 			state.pc += 2
 		}
 	case 0xf5: // PUSH PSW
-		fmt.Println(opCode, "PUSH PSW")
+		psw := setPSW(state)
+		state.memory[state.sp-1] = state.a
+		state.memory[state.sp-2] = psw
+		state.sp -= 2
 	case 0xf6: // ORI
 		state.a = state.a | state.memory[state.pc+1]
 		setLogicFlags(state)
