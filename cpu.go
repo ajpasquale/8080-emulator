@@ -85,7 +85,7 @@ func Emulate8080(state *state8080) {
 		bc += 1
 		state.b, state.c = pairToBytes(bc)
 	case 0x04: // INR B
-		state.b++
+		state.b = add8(state, state.b, 1)
 	case 0x05: // DCR B
 		state.b = sub8(state, state.b, 1)
 	case 0x06: // MVI B
@@ -113,9 +113,9 @@ func Emulate8080(state *state8080) {
 		bc := bytesToPair(state.b, state.c)
 		state.b, state.c = pairToBytes(bc - 1)
 	case 0x0c: // INR C
-		state.c++
+		state.c = add8(state, state.c, 1)
 	case 0x0d: // DCR C
-		state.c--
+		state.c = sub8(state, state.c, 1)
 	case 0x0e: // MVI C
 		state.c = state.memory[state.pc]
 		state.pc++
@@ -138,9 +138,9 @@ func Emulate8080(state *state8080) {
 		de += 1
 		state.d, state.e = pairToBytes(de)
 	case 0x14: // INR D
-		state.d++
+		state.d = add8(state, state.d, 1)
 	case 0x15: // DCR D
-		state.d--
+		state.d = sub8(state, state.d, 1)
 	case 0x16: // MVI D
 		state.d = state.memory[state.pc]
 		state.pc++
@@ -166,9 +166,9 @@ func Emulate8080(state *state8080) {
 		de := bytesToPair(state.d, state.e)
 		state.d, state.e = pairToBytes(de - 1)
 	case 0x1c: // INR E
-		state.e++
+		state.e = add8(state, state.e, 1)
 	case 0x1d:
-		state.e--
+		state.e = sub8(state, state.e, 1)
 	case 0x1e: // MVI E
 		state.e = state.memory[state.pc]
 		state.pc++
@@ -193,9 +193,9 @@ func Emulate8080(state *state8080) {
 		hl += 1
 		state.h, state.l = pairToBytes(hl)
 	case 0x24: // INR H
-		state.h++
-	case 0x25:
-		state.h--
+		state.h = add8(state, state.h, 1)
+	case 0x25: // DCR H
+		state.h = sub8(state, state.h, 1)
 	case 0x26: // MVI H
 		state.h = state.memory[state.pc]
 		state.pc++
@@ -212,19 +212,18 @@ func Emulate8080(state *state8080) {
 		}
 		state.h, state.l = pairToBytes(r)
 	case 0x2a: // LHLD
-		state.pc++
 		state.l = state.memory[state.pc]
 		state.pc++
 		state.h = state.memory[state.pc]
+		state.pc++
 	case 0x2b: // DCX H
 		hl := bytesToPair(state.h, state.l)
 		state.h, state.l = pairToBytes(hl - 1)
 	case 0x2c: // INR L
-		state.l++
+		state.l = add8(state, state.l, 1)
 	case 0x2d: //  DCR L
-		state.l--
+		state.l = sub8(state, state.l, 1)
 	case 0x2e: // MVI L
-
 		state.l = state.memory[state.pc]
 		state.pc++
 	case 0x2f: // CMA needs work to update the flags register and check for overflow
@@ -244,7 +243,7 @@ func Emulate8080(state *state8080) {
 		state.pc++
 		addr := bytesToPair(hi, lo)
 		state.memory[addr] = state.a
-	case 0x33: // INX SP NOT CORRECT!
+	case 0x33: // INX SP
 		state.sp++
 	case 0x34: // INR M
 		m := bytesToPair(state.h, state.l)
@@ -279,9 +278,9 @@ func Emulate8080(state *state8080) {
 	case 0x3b: // DCX SP
 		state.sp--
 	case 0x3c: // INR A
-		state.a++
+		state.a = add8(state, state.a, 1)
 	case 0x3d: // DCR A
-		state.a--
+		state.a = sub8(state, state.a, 1)
 	case 0x3e: // MVI A
 		state.a = state.memory[state.pc]
 		state.pc++
@@ -444,7 +443,6 @@ func Emulate8080(state *state8080) {
 	case 0x86: // ADD M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-
 		state.a = add8(state, state.a, m)
 	case 0x87: // ADD A
 		state.a = add8(state, state.a, state.a)
@@ -463,7 +461,6 @@ func Emulate8080(state *state8080) {
 	case 0x8e: // ADC M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-
 		state.a = add8WithCarry(state, state.a, m)
 	case 0x8f: // ADC A
 		state.a = add8WithCarry(state, state.a, state.a)
@@ -524,7 +521,6 @@ func Emulate8080(state *state8080) {
 	case 0xa6: // ANA M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-
 		state.a = state.a & m
 		setLogicFlags(state)
 	case 0xa7: // ANA A
@@ -551,7 +547,6 @@ func Emulate8080(state *state8080) {
 	case 0xae: // XRA M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-
 		state.a = state.a ^ m
 		setLogicFlags(state)
 	case 0xaf: // XRA A
@@ -578,7 +573,6 @@ func Emulate8080(state *state8080) {
 	case 0xb6: // ORA M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-
 		state.a = state.a | m
 	case 0xb7: // ORA A
 		state.a = state.a | state.a
@@ -601,7 +595,6 @@ func Emulate8080(state *state8080) {
 	case 0xbe: // CMP M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-
 		sub8(state, state.a, m)
 	case 0xbf: // CMP A
 		sub8(state, state.a, state.a)
@@ -676,7 +669,8 @@ func Emulate8080(state *state8080) {
 		lo := state.memory[state.pc]
 		state.pc = bytesToPair(hi, lo)
 	case 0xce: // ACI
-		fmt.Println(opCode, "ACI")
+		state.a = add8WithCarry(state, state.a, state.memory[state.pc+1])
+		state.pc++
 	case 0xcf: // RST 1
 		fmt.Println(opCode, "RST 1")
 	case 0xd0: // RNC
@@ -695,7 +689,8 @@ func Emulate8080(state *state8080) {
 			state.pc += 2
 		}
 	case 0xd3: // OUT
-		fmt.Println(opCode, "OUT")
+		fmt.Println("OUT", state.memory[state.pc])
+		fmt.Printf("%b\n", state.a)
 	case 0xd4: // CNC
 		if state.cc.cy == 0 {
 			ret := state.pc + 2
@@ -712,7 +707,8 @@ func Emulate8080(state *state8080) {
 		state.memory[state.sp-2] = state.e
 		state.sp -= 2
 	case 0xd6: // SUI
-		fmt.Println(opCode, "SUI")
+		state.a = sub8(state, state.a, state.memory[state.pc+1])
+		state.pc++
 	case 0xd7: // RST 2
 		fmt.Println(opCode, "RST 2")
 	case 0xd8: // RC
@@ -731,11 +727,21 @@ func Emulate8080(state *state8080) {
 	case 0xdb: // IN
 		fmt.Println(opCode, "IN")
 	case 0xdc: // CC
-		fmt.Println(opCode, "CC")
+		if state.cc.cy == 1 {
+			ret := state.pc + 2
+			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			state.sp -= 2
+			hi := state.memory[state.pc+2]
+			lo := state.memory[state.pc+1]
+			state.pc = bytesToPair(hi, lo)
+		} else {
+			state.pc += 2
+		}
 	case 0xdd: // -
 		fmt.Println(opCode, "-")
 	case 0xde: // SBI
-		fmt.Println(opCode, "SBI")
+		state.a = sub8WithBorrow(state, state.a, state.memory[state.pc+1])
+		state.pc++
 	case 0xdf: // RST 3
 		fmt.Println(opCode, "RST 3")
 	case 0xe0: // RPO
@@ -754,7 +760,9 @@ func Emulate8080(state *state8080) {
 			state.pc += 2
 		}
 	case 0xe3: // XTHL
-		fmt.Println(opCode, "XTHL")
+		hl := bytesToPair(state.h, state.l)
+		state.h, state.l = pairToBytes(state.sp)
+		state.sp = hl
 	case 0xe4: // CPO
 		if state.cc.p == 0 {
 			ret := state.pc + 2
@@ -829,7 +837,6 @@ func Emulate8080(state *state8080) {
 			state.pc += 2
 		}
 	case 0xf3: // DI - 01 Disable Interrupts
-		fmt.Println(opCode, "DI")
 		state.int_enable = 0
 	case 0xf4: // CP
 		if state.cc.s == 0 {

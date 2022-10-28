@@ -1,7 +1,6 @@
 package emulator
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 )
@@ -19,22 +18,42 @@ func TestCpu(t *testing.T) {
 	loadFileIntoMemoryAt(state, "rom/invaders/invaders.g", 0x800)  // 0800-0FFF
 	loadFileIntoMemoryAt(state, "rom/invaders/invaders.f", 0x1000) // 1000-17FF
 	loadFileIntoMemoryAt(state, "rom/invaders/invaders.e", 0x1800) // 1800-1FFF
-	for i := 0; i < 8193; i++ {
-		state.memory = append(state.memory, 0xFF)
-	}
+	// for i := 0; i < 8193; i++ {
+	// 	state.memory = append(state.memory, 0xFF)
+	// }
 	// for i := 0; ; i++ {
+	// 	if state.pc == 0x0ada {
+	// 		state.a = 0
+	// 	}
+
 	// 	Emulate8080(state)
+	// 	fmt.Println(i)
 	// }
 }
 
 func TestInstructionINXB(t *testing.T) {
-	state := newState8080()
-	state.b = 0xAB
-	state.c = 0xCD
-	fmt.Printf("%x%x\n", state.b, state.c)
-	state.memory = append(state.memory, 0x03)
-	Emulate8080(state)
-	fmt.Printf("%x%x\n", state.b, state.c)
+	tests := []struct {
+		in   []uint8
+		want []uint8
+	}{
+		{[]uint8{0x00, 0x00}, []uint8{0x00, 0x01}},
+		{[]uint8{0xAB, 0xCD}, []uint8{0xAB, 0xCE}},
+		{[]uint8{0xFF, 0xFF}, []uint8{0x00, 0x00}},
+	}
+
+	for _, tt := range tests {
+		state := newState8080()
+		state.b = tt.in[0]
+		state.c = tt.in[1]
+		state.memory = append(state.memory, 0x03)
+		Emulate8080(state)
+		if !reflect.DeepEqual(state.b, tt.want[0]) {
+			t.Errorf("TestInstructionINXB(%q)\nhave %v \nwant %v", tt.in, state.b, tt.want[0])
+		}
+		if !reflect.DeepEqual(state.c, tt.want[1]) {
+			t.Errorf("TestInstructionINXB(%q)\nhave %v \nwant %v", tt.in, state.c, tt.want[1])
+		}
+	}
 }
 
 func TestInstructionRLC(t *testing.T) {
@@ -78,10 +97,10 @@ func TestInstructionDADB(t *testing.T) {
 		Emulate8080(state)
 
 		if !reflect.DeepEqual(bytesToPair(state.h, state.l), tt.want[0]) {
-			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
+			t.Errorf("TestInstructionDADB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
 		}
 		if !reflect.DeepEqual(state.cc.cy, uint8(tt.want[1])) {
-			t.Errorf("TestInstructionRLC(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[1])
+			t.Errorf("TestInstructionDADB(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[1])
 		}
 	}
 }
@@ -311,10 +330,10 @@ func TestInstructionCMPB(t *testing.T) {
 		Emulate8080(state)
 
 		if !reflect.DeepEqual(state.a, tt.want[0]) {
-			t.Errorf("TestInstructionSUBB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
+			t.Errorf("TestInstructionCMPB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
 		}
 		if !reflect.DeepEqual(state.b, tt.want[1]) {
-			t.Errorf("TestInstructionSUBB(%q)\nhave %v \nwant %v", tt.in, state.b, tt.want[1])
+			t.Errorf("TestInstructionCMPB(%q)\nhave %v \nwant %v", tt.in, state.b, tt.want[1])
 		}
 	}
 }

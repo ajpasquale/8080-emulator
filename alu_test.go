@@ -115,7 +115,7 @@ func TestParity(t *testing.T) {
 	for _, tt := range tests {
 		have := Btoi(bits.OnesCount8(uint8(tt.in&0xFF))%2 == 0)
 		if !reflect.DeepEqual(have, tt.want) {
-			t.Errorf("parity(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
+			t.Errorf("TestParity(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
 		}
 	}
 }
@@ -205,7 +205,7 @@ func TestSetPSW(t *testing.T) {
 		have := setPSW(state)
 
 		if !reflect.DeepEqual(have, tt.want) {
-			t.Errorf("TestInstructionSetPSW(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
+			t.Errorf("TestSetPSW(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
 		}
 	}
 }
@@ -233,19 +233,19 @@ func TestSetFlagsFromPSW(t *testing.T) {
 		setFlagsFromPSW(state, psw)
 
 		if !reflect.DeepEqual(state.cc.s, tt.want[0]) {
-			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[0])
+			t.Errorf("TestSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[0])
 		}
 		if !reflect.DeepEqual(state.cc.z, tt.want[1]) {
-			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.z, tt.want[1])
+			t.Errorf("TestSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.z, tt.want[1])
 		}
 		if !reflect.DeepEqual(state.cc.ac, tt.want[2]) {
-			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.p, tt.want[2])
+			t.Errorf("TestSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.p, tt.want[2])
 		}
 		if !reflect.DeepEqual(state.cc.p, tt.want[3]) {
-			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.s, tt.want[3])
+			t.Errorf("TestSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.s, tt.want[3])
 		}
 		if !reflect.DeepEqual(state.cc.cy, tt.want[4]) {
-			t.Errorf("TestInstructionSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.s, tt.want[4])
+			t.Errorf("TestSetFlagsFromPSW(%q)\nhave %v \nwant %v", tt.in, state.cc.s, tt.want[4])
 		}
 	}
 }
