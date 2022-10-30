@@ -198,6 +198,7 @@ func TestInstructionCMA(t *testing.T) {
 		{0x00, 0xFF},
 		{0xFF, 0x00},
 		{0xAA, 0x55},
+		{0x51, 0xAE},
 		{0x89, 0x76},
 	}
 	for _, tt := range tests {
@@ -424,6 +425,25 @@ func TestInstructionMVI(t *testing.T) {
 
 		if !reflect.DeepEqual(hi, tt.want[0]) {
 			t.Errorf("TestInstructionMVI Hi(%x)\nhave %v \nwant %v", tt.in[0], hi, tt.want[0])
+		}
+	}
+}
+
+func TestInstructionDAA(t *testing.T) {
+	tests := []struct {
+		in   uint8
+		want uint8
+	}{
+		{0x9B, 0x01},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in
+		state.memory = append(state.memory, 0x27)
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionDAA(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
 		}
 	}
 }
