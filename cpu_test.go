@@ -1,8 +1,10 @@
 package emulator
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestCpu(t *testing.T) {
@@ -18,17 +20,36 @@ func TestCpu(t *testing.T) {
 	loadFileIntoMemoryAt(state, "rom/invaders/invaders.g", 0x800)  // 0800-0FFF
 	loadFileIntoMemoryAt(state, "rom/invaders/invaders.f", 0x1000) // 1000-17FF
 	loadFileIntoMemoryAt(state, "rom/invaders/invaders.e", 0x1800) // 1800-1FFF
-	// for i := 0; i < 8193; i++ {
-	// 	state.memory = append(state.memory, 0xFF)
-	// }
-	// for i := 0; ; i++ {
-	// 	if state.pc == 0x0ada {
-	// 		state.a = 0
-	// 	}
+	for i := 0; i < 8193; i++ {
+		state.memory = append(state.memory, 0xFF)
+	}
 
-	// 	Emulate8080(state)
-	// 	fmt.Println(i)
-	// }
+	now := time.Now()
+
+	timer := now
+	for {
+
+		// RST 1 - middle of the screen interrupt
+		if time.Since(timer) > 8000*time.Microsecond && state.int_enable == 1 {
+			//Interrupt8080(state, )
+			Restart8080(state, RST1)
+		}
+		// RST 2 - end of screen interrupt
+		if time.Since(timer) > 16000*time.Microsecond && state.int_enable == 1 {
+			// problem near 17cd db 02	 IN	 $02
+			Restart8080(state, RST2)
+			timer = time.Now()
+		}
+		if time.Since(now) > 1*time.Second || state.pc == 0x024b {
+			//fmt.Println("break")
+		}
+		fmt.Printf("pc: %x, a: %x, h: %x, l: %x\n",
+			state.pc,
+			state.a,
+			state.h,
+			state.l)
+		Emulate8080(state)
+	}
 }
 
 func TestInstructionINXB(t *testing.T) {
@@ -445,5 +466,176 @@ func TestInstructionDAA(t *testing.T) {
 		if !reflect.DeepEqual(state.a, tt.want) {
 			t.Errorf("TestInstructionDAA(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
 		}
+	}
+}
+
+func TestInstructionANI(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x40, 0x40}, 0x40},
+		{[]uint8{0x40, 0x00}, 0x00},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.memory = append(state.memory, 0xe6)
+		state.memory = append(state.memory, tt.in[1])
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionANI(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestInstructionXRI(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0xFF, 0xFF}, 0x00},
+		{[]uint8{0xFF, 0xDD}, 0x22},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.memory = append(state.memory, 0xee)
+		state.memory = append(state.memory, tt.in[1])
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionXRI(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestInstructionSBI(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x40, 0x40}, 0x00},
+		{[]uint8{0x40, 0x20}, 0x20},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.memory = append(state.memory, 0xde)
+		state.memory = append(state.memory, tt.in[1])
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionSBI(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestInstructionACI(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x00, 0x00}, 0x00},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.memory = append(state.memory, 0xce)
+		state.memory = append(state.memory, tt.in[1])
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionACI(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestInstructionADI(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x00, 0x00}, 0x00},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.memory = append(state.memory, 0xc6)
+		state.memory = append(state.memory, tt.in[1])
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionADI(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestInstructionSUI(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x00, 0x00}, 0x00},
+	}
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[0]
+		state.memory = append(state.memory, 0xd6)
+		state.memory = append(state.memory, tt.in[1])
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, tt.want) {
+			t.Errorf("TestInstructionSUI(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+func TestInstructionRST0(t *testing.T) {
+	// state := newState8080()
+	// state.memory = append(state.memory, 0x00) // NOP
+	// state.memory = append(state.memory, 0x03) // INX B
+	// state.memory = append(state.memory, 0xc9) // RET
+	// state.memory = append(state.memory, 0xc7) // RST 0
+	// state.memory = append(state.memory, 0x00) // NOP
+	// state.memory = append(state.memory, 0x76) // HLT
+	// state.memory = append(state.memory, 0x00) // Stack
+	// state.memory = append(state.memory, 0x00) // Stack
+	// state.pc = 3                              // Start at RST 0
+	// state.sp = 8                              // End of stack
+	// Emulate8080(state)
+	// Emulate8080(state)
+	// Emulate8080(state)
+	// Emulate8080(state)
+	// Emulate8080(state)
+	// Emulate8080(state)
+}
+
+func TestInstructionCall(t *testing.T) {
+	state := newState8080()
+	state.pc = 0
+	state.sp = 8                              // end of the stack
+	state.memory = append(state.memory, 0xcd) // CALL
+	state.memory = append(state.memory, 0x04) // LO ADDR
+	state.memory = append(state.memory, 0x00) // HI ADDR
+	state.memory = append(state.memory, 0x76) // HLT
+	state.memory = append(state.memory, 0x3c) // INR A
+	state.memory = append(state.memory, 0xc9) // RET
+	state.memory = append(state.memory, 0xFF) // sp
+	state.memory = append(state.memory, 0xFF) // sp
+	Emulate8080(state)
+	Emulate8080(state)
+	Emulate8080(state)
+
+	if !reflect.DeepEqual(state.a, uint8(0x01)) {
+		t.Errorf("TestInstructionCall(%q)\nhave %v \nwant %v", 0x01, state.a, 0x01)
+	}
+
+	if !reflect.DeepEqual(state.memory[state.pc], uint8(0x76)) {
+		t.Errorf("TestInstructionCall(%q)\nhave %v \nwant %v", 0x76, state.a, 0x76)
+	}
+
+	if !reflect.DeepEqual(state.sp, uint16(8)) {
+		t.Errorf("TestInstructionCall(%q)\nhave %v \nwant %v", 0x76, state.a, 0x76)
 	}
 }
