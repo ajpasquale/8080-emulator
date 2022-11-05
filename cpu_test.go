@@ -8,21 +8,8 @@ import (
 )
 
 func TestCpu(t *testing.T) {
-
 	state := newState8080()
-
-	//    0000-1FFF 8K ROM
-	//    2000-23FF 1K RAM
-	//    2400-3FFF 7K Video RAM
-	//    4000- RAM mirror
-
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.h", 0x0)    // 0000-07FF
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.g", 0x800)  // 0800-0FFF
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.f", 0x1000) // 1000-17FF
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.e", 0x1800) // 1800-1FFF
-	for i := 0; i < 8193; i++ {
-		state.memory = append(state.memory, 0xFF)
-	}
+	LoadSpaceInvaders(state)
 
 	now := time.Now()
 
@@ -41,7 +28,7 @@ func TestCpu(t *testing.T) {
 			timer = time.Now()
 		}
 		if time.Since(now) > 1*time.Second || state.pc == 0x024b {
-			//fmt.Println("break")
+			fmt.Println("break")
 		}
 		fmt.Printf("pc: %x, a: %x, h: %x, l: %x\n",
 			state.pc,

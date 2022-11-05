@@ -3,8 +3,6 @@ package emulator
 import (
 	"fmt"
 	"os"
-
-	"golang.org/x/exp/slices"
 )
 
 type restart uint8
@@ -63,7 +61,7 @@ func newState8080() *state8080 {
 		l:          0,
 		sp:         0,
 		pc:         0,
-		memory:     make([]uint8, 0, 0x10000), // 16K
+		memory:     make([]uint8, 0x10000, 0x10000), // 16K
 		cc:         cc,
 		int_enable: 0,
 	}
@@ -76,7 +74,23 @@ func loadFileIntoMemoryAt(state *state8080, file string, offset int) {
 		os.Exit(1)
 		return
 	}
-	state.memory = slices.Insert(state.memory, offset, bs...)
+	copy(state.memory[offset:], bs)
+}
+func LoadSpaceInvaders(state *state8080) {
+	loadFileIntoMemoryAt(state, "rom/invaders/invaders.h", 0x0)    // 0000-07FF
+	loadFileIntoMemoryAt(state, "rom/invaders/invaders.g", 0x800)  // 0800-0FFF
+	loadFileIntoMemoryAt(state, "rom/invaders/invaders.f", 0x1000) // 1000-17FF
+	loadFileIntoMemoryAt(state, "rom/invaders/invaders.e", 0x1800) // 1800-1FFF
+}
+
+func ScreenData(state *state8080) []uint8 {
+	return state.memory[0x2400:0x3FFF]
+}
+
+func Initiate8080() *state8080 {
+	state := newState8080()
+	// May need to add more to this later
+	return state
 }
 
 func Emulate8080(state *state8080) {
