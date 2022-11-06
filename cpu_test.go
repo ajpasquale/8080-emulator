@@ -28,7 +28,8 @@ func TestCpu(t *testing.T) {
 			timer = time.Now()
 		}
 		if time.Since(now) > 1*time.Second || state.pc == 0x024b {
-
+			screen := ScreenData(state)
+			fmt.Println(screen)
 		}
 		fmt.Printf("pc: %x, a: %x, h: %x, l: %x\n",
 			state.pc,
