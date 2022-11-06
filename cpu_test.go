@@ -28,13 +28,15 @@ func TestCpu(t *testing.T) {
 			timer = time.Now()
 		}
 		if time.Since(now) > 1*time.Second || state.pc == 0x024b {
-			fmt.Println("break")
+			screen := ScreenData(state)
+			//fmt.Println(len(screen))
+			fmt.Println(screen)
 		}
-		fmt.Printf("pc: %x, a: %x, h: %x, l: %x\n",
-			state.pc,
-			state.a,
-			state.h,
-			state.l)
+		// fmt.Printf("pc: %x, a: %x, h: %x, l: %x\n",
+		// 	state.pc,
+		// 	state.a,
+		// 	state.h,
+		// 	state.l)
 		Emulate8080(state)
 	}
 }
@@ -625,4 +627,7 @@ func TestInstructionCall(t *testing.T) {
 	if !reflect.DeepEqual(state.sp, uint16(8)) {
 		t.Errorf("TestInstructionCall(%q)\nhave %v \nwant %v", 0x76, state.a, 0x76)
 	}
+}
+
+func TestScreenData(t *testing.T) {
 }

@@ -972,3 +972,7 @@ func Restart8080(state *state8080, oper restart) {
 	state.sp -= 2
 	state.pc = bytesToPair(0x00, addr)
 }
+
+func GetIntEnabled(state *state8080) uint8 {
+	return state.int_enable
+}
