@@ -3,8 +3,6 @@ package emulator
 import (
 	"fmt"
 	"os"
-
-	"golang.org/x/exp/slices"
 )
 
 type restart uint8
@@ -77,7 +75,9 @@ func loadFileIntoMemoryAt(state *state8080, file string, offset int) {
 		return
 	}
 	//copy(state.memory[offset:], bs)
-	state.memory = slices.Insert(state.memory, offset, bs...)
+
+	// state.memory = slices.Insert(state.memory, offset, bs...)
+	state.memory = append(state.memory[:offset], append(bs, state.memory[offset:]...)...)
 }
 func LoadSpaceInvaders(state *state8080) {
 	loadFileIntoMemoryAt(state, "rom/invaders/invaders.h", 0x0)    // 0000-07FF
