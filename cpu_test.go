@@ -1,44 +1,40 @@
 package emulator
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
-	"time"
 )
 
 func TestCpu(t *testing.T) {
-	state := newState8080()
-	LoadSpaceInvaders(state)
+	// state := newState8080()
+	// LoadSpaceInvaders(state)
 
-	now := time.Now()
+	// now := time.Now()
 
-	timer := now
-	for {
+	// timer := now
+	// for {
 
-		// RST 1 - middle of the screen interrupt
-		if time.Since(timer) > 8000*time.Microsecond && state.int_enable == 1 {
-			//Interrupt8080(state, )
-			Restart8080(state, RST1)
-		}
-		// RST 2 - end of screen interrupt
-		if time.Since(timer) > 16000*time.Microsecond && state.int_enable == 1 {
-			// problem near 17cd db 02	 IN	 $02
-			Restart8080(state, RST2)
-			timer = time.Now()
-		}
-		if time.Since(now) > 1*time.Second || state.pc == 0x024b {
-			screen := ScreenData(state)
-			//fmt.Println(len(screen))
-			fmt.Println(screen)
-		}
-		// fmt.Printf("pc: %x, a: %x, h: %x, l: %x\n",
-		// 	state.pc,
-		// 	state.a,
-		// 	state.h,
-		// 	state.l)
-		Emulate8080(state)
-	}
+	// 	// RST 1 - middle of the screen interrupt
+	// 	if time.Since(timer) > 8000*time.Microsecond && state.int_enable == 1 {
+	// 		//Interrupt8080(state, )
+	// 		Restart8080(state, RST1)
+	// 	}
+	// 	// RST 2 - end of screen interrupt
+	// 	if time.Since(timer) > 16000*time.Microsecond && state.int_enable == 1 {
+	// 		// problem near 17cd db 02	 IN	 $02
+	// 		Restart8080(state, RST2)
+	// 		timer = time.Now()
+	// 	}
+	// 	if time.Since(now) > 1*time.Second || state.pc == 0x024b {
+
+	// 	}
+	// 	fmt.Printf("pc: %x, a: %x, h: %x, l: %x\n",
+	// 		state.pc,
+	// 		state.a,
+	// 		state.h,
+	// 		state.l)
+	// 	Emulate8080(state)
+	// }
 }
 
 func TestInstructionINXB(t *testing.T) {
