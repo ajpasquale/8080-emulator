@@ -18,6 +18,25 @@ const (
 	RST7
 )
 
+var cycles8080 = []int{
+	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, //0x00..0x0f
+	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, //0x10..0x1f
+	4, 10, 16, 5, 5, 5, 7, 4, 4, 10, 16, 5, 5, 5, 7, 4,
+	4, 10, 13, 5, 10, 10, 10, 4, 4, 10, 13, 5, 5, 5, 7, 4,
+	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, //0x40..0x4f
+	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5,
+	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5,
+	7, 7, 7, 7, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 7, 5,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, //0x80..8x4f
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	11, 10, 10, 10, 17, 11, 7, 11, 11, 10, 10, 10, 10, 17, 7, 11, //0xc0..0xcf
+	11, 10, 10, 10, 17, 11, 7, 11, 11, 10, 10, 10, 10, 17, 7, 11,
+	11, 10, 10, 18, 17, 11, 7, 11, 11, 5, 10, 5, 17, 17, 7, 11,
+	11, 10, 10, 4, 17, 11, 7, 11, 11, 5, 10, 4, 17, 17, 7, 11,
+}
+
 type conditionCodes struct {
 	z   uint8
 	s   uint8
@@ -102,7 +121,7 @@ func ScreenData(state *state8080) []uint8 {
 		decoded[i+3] = Btoi(0x10 == (e & 0x10)) // bit 4 0x10
 		decoded[i+4] = Btoi(0x08 == (e & 0x08)) // bit 3 0x08
 		decoded[i+5] = Btoi(0x04 == (e & 0x04)) // bit 2 0x04
-		decoded[i+6] = Btoi(0x04 == (e & 0x02)) // bit 1 0x02
+		decoded[i+6] = Btoi(0x02 == (e & 0x02)) // bit 1 0x02
 		decoded[i+7] = Btoi(0x01 == (e & 0x01)) // bit 0 0x01
 		i += 8
 	}
@@ -116,7 +135,7 @@ func Initiate8080() *state8080 {
 	return state
 }
 
-func Emulate8080(state *state8080) {
+func Emulate8080(state *state8080) int {
 	opCode := state.memory[state.pc]
 	state.pc++
 
@@ -741,6 +760,7 @@ func Emulate8080(state *state8080) {
 			state.pc += 2
 		}
 	case 0xd3: // OUT
+		//fmt.Printf("OUT port: %x  a: %b\n", state.memory[state.pc], state.a)
 		state.pc++
 	case 0xd4: // CNC
 		if state.cc.cy == 0 {
@@ -779,6 +799,7 @@ func Emulate8080(state *state8080) {
 			state.pc += 2
 		}
 	case 0xdb: // IN
+		//	fmt.Printf("IN port: %x  a: %b\n", state.memory[state.pc], state.a)
 		state.pc++
 	case 0xdc: // CC
 		if state.cc.cy == 1 {
@@ -965,6 +986,8 @@ func Emulate8080(state *state8080) {
 		state.sp -= 2
 		state.pc = bytesToPair(0x00, 0x38)
 	}
+
+	return cycles8080[opCode]
 }
 
 func Restart8080(state *state8080, oper restart) {
@@ -998,4 +1021,36 @@ func Restart8080(state *state8080, oper restart) {
 
 func GetIntEnabled(state *state8080) uint8 {
 	return state.int_enable
+}
+
+func GetInput(state *state8080) {
+	// INPUT
+	if state.memory[state.pc] == 0xdb {
+		switch state.memory[state.pc+1] {
+		case 0x0: // fire, left, right?
+		case 0x1: // credit,start, player 1 shot, left, right
+		case 0x2: // dip3,5,6, player 2 shot, left, right
+		case 0x3: // shift reg data
+			m := uint16(shiftMSB) << 8
+			shift := uint16(m | uint16(shiftLSB))
+			state.a = uint8((shift >> (8 - shiftCount)) & 0xFF)
+		}
+	}
+}
+
+func GetOutput(state *state8080) {
+	// OUTPUT
+	if state.memory[state.pc] == 0xd3 {
+		switch state.memory[state.pc+1] {
+		case 0x02: // shift amount
+			shiftCount = state.a & 7
+		case 0x03: // discrete sounds
+		case 0x04: // shift data (LSB on 1st write, MSB on 2nd)
+			shiftLSB = shiftMSB
+			shiftMSB = state.a
+		case 0x05: // discrete sounds
+		case 0x06: // watchdog?
+		}
+
+	}
 }

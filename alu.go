@@ -2,6 +2,10 @@ package emulator
 
 import "math/bits"
 
+var shiftCount uint8
+var shiftLSB uint8 // right
+var shiftMSB uint8 // left
+
 func shiftLeft8(a uint8, k int) (uint8, uint8) {
 	msb := a >> 7
 	r := uint16(a) << k
