@@ -119,10 +119,13 @@ func ScreenData(state *state8080) []uint8 {
 		decoded[i+1] = Btoi(0x40 == (e & 0x40)) // bit 6 0x40
 		decoded[i+2] = Btoi(0x20 == (e & 0x20)) // bit 5 0x20
 		decoded[i+3] = Btoi(0x10 == (e & 0x10)) // bit 4 0x10
+
 		decoded[i+4] = Btoi(0x08 == (e & 0x08)) // bit 3 0x08
 		decoded[i+5] = Btoi(0x04 == (e & 0x04)) // bit 2 0x04
 		decoded[i+6] = Btoi(0x02 == (e & 0x02)) // bit 1 0x02
 		decoded[i+7] = Btoi(0x01 == (e & 0x01)) // bit 0 0x01
+
+		
 		i += 8
 	}
 
