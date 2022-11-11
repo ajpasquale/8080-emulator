@@ -5,19 +5,6 @@ import (
 	"os"
 )
 
-type restart uint8
-
-const (
-	RST0 restart = iota
-	RST1
-	RST2
-	RST3
-	RST4
-	RST5
-	RST6
-	RST7
-)
-
 var cycles8080 = []int{
 	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, //0x00..0x0f
 	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, //0x10..0x1f
@@ -93,9 +80,6 @@ func loadFileIntoMemoryAt(state *state8080, file string, offset int) {
 		os.Exit(1)
 		return
 	}
-	//copy(state.memory[offset:], bs)
-
-	// state.memory = slices.Insert(state.memory, offset, bs...)
 	state.memory = append(state.memory[:offset], append(bs, state.memory[offset:]...)...)
 }
 func LoadSpaceInvaders(state *state8080) {
@@ -109,33 +93,8 @@ func LoadSpaceInvaders(state *state8080) {
 
 }
 
-func ScreenData(state *state8080) []uint8 {
-	encoded := state.memory[0x2400:0x3FFF]
-	decoded := make([]uint8, len(encoded)*8, len(encoded)*8)
-	i := 0
-	for _, e := range encoded {
-
-		decoded[i] = Btoi(0x80 == (e & 0x80))   // bit 7 0x80
-		decoded[i+1] = Btoi(0x40 == (e & 0x40)) // bit 6 0x40
-		decoded[i+2] = Btoi(0x20 == (e & 0x20)) // bit 5 0x20
-		decoded[i+3] = Btoi(0x10 == (e & 0x10)) // bit 4 0x10
-
-		decoded[i+4] = Btoi(0x08 == (e & 0x08)) // bit 3 0x08
-		decoded[i+5] = Btoi(0x04 == (e & 0x04)) // bit 2 0x04
-		decoded[i+6] = Btoi(0x02 == (e & 0x02)) // bit 1 0x02
-		decoded[i+7] = Btoi(0x01 == (e & 0x01)) // bit 0 0x01
-
-		
-		i += 8
-	}
-
-	return decoded
-}
-
-func Initiate8080() *state8080 {
-	state := newState8080()
-	// May need to add more to this later
-	return state
+func InitializeState() *state8080 {
+	return newState8080()
 }
 
 func Emulate8080(state *state8080) int {
@@ -991,69 +950,4 @@ func Emulate8080(state *state8080) int {
 	}
 
 	return cycles8080[opCode]
-}
-
-func Restart8080(state *state8080, oper restart) {
-	var addr uint8
-	switch oper {
-	case RST0:
-		addr = 0x00
-	case RST1:
-		addr = 0x08
-	case RST2:
-		addr = 0x10
-	case RST3:
-		addr = 0x18
-	case RST4:
-		addr = 0x20
-	case RST5:
-		addr = 0x28
-	case RST6:
-		addr = 0x30
-	case RST7:
-		addr = 0x38
-
-	}
-
-	// push pc to stack and jump
-	state.int_enable = 0
-	state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
-	state.sp -= 2
-	state.pc = bytesToPair(0x00, addr)
-}
-
-func GetIntEnabled(state *state8080) uint8 {
-	return state.int_enable
-}
-
-func GetInput(state *state8080) {
-	// INPUT
-	if state.memory[state.pc] == 0xdb {
-		switch state.memory[state.pc+1] {
-		case 0x0: // fire, left, right?
-		case 0x1: // credit,start, player 1 shot, left, right
-		case 0x2: // dip3,5,6, player 2 shot, left, right
-		case 0x3: // shift reg data
-			m := uint16(shiftMSB) << 8
-			shift := uint16(m | uint16(shiftLSB))
-			state.a = uint8((shift >> (8 - shiftCount)) & 0xFF)
-		}
-	}
-}
-
-func GetOutput(state *state8080) {
-	// OUTPUT
-	if state.memory[state.pc] == 0xd3 {
-		switch state.memory[state.pc+1] {
-		case 0x02: // shift amount
-			shiftCount = state.a & 7
-		case 0x03: // discrete sounds
-		case 0x04: // shift data (LSB on 1st write, MSB on 2nd)
-			shiftLSB = shiftMSB
-			shiftMSB = state.a
-		case 0x05: // discrete sounds
-		case 0x06: // watchdog?
-		}
-
-	}
 }

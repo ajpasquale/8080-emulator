@@ -5,65 +5,39 @@ import (
 	"testing"
 )
 
-func TestCpu(t *testing.T) {
-	// cycles := 0
-	// state := newState8080()
-	// LoadSpaceInvaders(state)
+func TestInstructionSTAX(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want []uint16
+	}{
+		//        instr a     b     c               a      memory
+		{[]uint8{0x02, 0xDD, 0x00, 0x01}, []uint16{0x00DD, 0x0001}},
+		{[]uint8{0x12, 0xDD, 0x00, 0x01}, []uint16{0x00DD, 0x0001}},
+	}
 
-	// now := time.Now()
+	for _, tt := range tests {
+		state := newState8080()
+		state.a = tt.in[1]
+		state.memory = append(state.memory, tt.in[0])
 
-	// timer := now
-	// for {
+		switch tt.in[0] {
+		case 0x02:
+			state.b = tt.in[2]
+			state.c = tt.in[3]
+		case 0x12:
+			state.d = tt.in[2]
+			state.e = tt.in[3]
+		default:
+			t.Errorf("TestInstructionSTAX missing case: %x", tt.in[0])
+		}
 
-	// 	// RST 1 - middle of the screen interrupt
-	// 	if time.Since(timer) > 8000*time.Microsecond && state.int_enable == 1 {
-	// 		//Interrupt8080(state, )
-	// 		Restart8080(state, RST1)
-	// 	}
-	// 	// RST 2 - end of screen interrupt
-	// 	if time.Since(timer) > 16000*time.Microsecond && state.int_enable == 1 {
-	// 		// problem near 17cd db 02	 IN	 $02
-	// 		Restart8080(state, RST2)
-	// 		timer = time.Now()
-	// 	}
-	// 	if time.Since(now) > 1*time.Second || state.pc == 0x024b {
-	// 		fmt.Println("break")
-	// 	}
+		state.memory = append(state.memory, 0x00)
+		Emulate8080(state)
 
-	// 	// INPUT
-	// 	if state.memory[state.pc] == 0xdb {
-	// 		switch state.memory[state.pc+1] {
-	// 		case 0x0: // fire, left, right?
-	// 		case 0x1: // credit,start, player 1 shot, left, right
-	// 		case 0x2: // dip3,5,6, player 2 shot, left, right
-	// 		case 0x3: // shift reg data
-	// 			m := uint16(shiftMSB) << 8
-	// 			shift := uint16(m | uint16(shiftLSB))
-	// 			state.a = uint8((shift >> (8 - shiftCount)) & 0xFF)
-	// 		}
-
-	// 	}
-	// 	// OUTPUT
-	// 	if state.memory[state.pc] == 0xd3 {
-	// 		switch state.memory[state.pc+1] {
-	// 		case 0x02: // shift amount
-	// 			shiftCount = state.a & 7
-	// 		case 0x03: // discrete sounds
-	// 		case 0x04: // shift data (LSB on 1st write, MSB on 2nd)
-	// 			shiftLSB = shiftMSB
-	// 			shiftMSB = state.a
-	// 		case 0x05: // discrete sounds
-	// 		case 0x06: // watchdog?
-	// 		}
-
-	// 	}
-	// 	fmt.Printf("pc: %x, a: %x, h: %x, l: %x\n",
-	// 		state.pc,
-	// 		state.a,
-	// 		state.h,
-	// 		state.l)
-	// 	cycles += Emulate8080(state)
-	// }
+		if !reflect.DeepEqual(state.memory[tt.want[1]], uint8(tt.want[0])) {
+			t.Errorf("TestInstructionSTAX(%q)\nhave %v \nwant %v", tt.in, state.b, tt.want[0])
+		}
+	}
 }
 
 func TestInstructionINXB(t *testing.T) {
@@ -87,6 +61,186 @@ func TestInstructionINXB(t *testing.T) {
 		}
 		if !reflect.DeepEqual(state.c, tt.want[1]) {
 			t.Errorf("TestInstructionINXB(%q)\nhave %v \nwant %v", tt.in, state.c, tt.want[1])
+		}
+	}
+}
+
+func TestInstructionINR(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x04, 0x00}, 0x01}, // B
+		{[]uint8{0x0c, 0x00}, 0x01}, // C
+		{[]uint8{0x14, 0x00}, 0x01}, // D
+		{[]uint8{0x1c, 0x00}, 0x01}, // E
+		{[]uint8{0x24, 0x00}, 0x01}, // H
+		{[]uint8{0x2c, 0x00}, 0x01}, // L
+		{[]uint8{0x34, 0x00}, 0x01}, // M
+		{[]uint8{0x3c, 0x00}, 0x01}, // A
+
+		{[]uint8{0x04, 0x99}, 0x9A}, // B
+		{[]uint8{0x0c, 0x99}, 0x9A}, // C
+		{[]uint8{0x14, 0x99}, 0x9A}, // D
+		{[]uint8{0x1c, 0x99}, 0x9A}, // E
+		{[]uint8{0x24, 0x99}, 0x9A}, // H
+		{[]uint8{0x2c, 0x99}, 0x9A}, // L
+		{[]uint8{0x34, 0x99}, 0x9A}, // M
+		{[]uint8{0x3c, 0x99}, 0x9A}, // A
+
+		{[]uint8{0x04, 0xFF}, 0x00}, // B
+		{[]uint8{0x0c, 0xFF}, 0x00}, // C
+		{[]uint8{0x14, 0xFF}, 0x00}, // D
+		{[]uint8{0x1c, 0xFF}, 0x00}, // E
+		{[]uint8{0x24, 0xFF}, 0x00}, // H
+		{[]uint8{0x2c, 0xFF}, 0x00}, // L
+		{[]uint8{0x34, 0xFF}, 0x00}, // M
+		{[]uint8{0x3c, 0xFF}, 0x00}, // A
+	}
+
+	var reg uint8
+
+	for _, tt := range tests {
+		state := newState8080()
+		state.memory = append(state.memory, tt.in[0])
+		switch tt.in[0] {
+		case 0x04: // INR B
+			state.b = tt.in[1]
+		case 0x0c: // INR C
+			state.c = tt.in[1]
+		case 0x14: // INR D
+			state.d = tt.in[1]
+		case 0x1c: // INR E
+			state.e = tt.in[1]
+		case 0x24: // INR H
+			state.h = tt.in[1]
+		case 0x2c: // INR L
+			state.l = tt.in[1]
+		case 0x34:
+			state.h = 0x00
+			state.l = 0x01
+			state.memory = append(state.memory, tt.in[1])
+		case 0x3c: // INR A
+			state.a = tt.in[1]
+		default:
+			t.Errorf("TestInstructionINR invalid case: %x", tt.in[0])
+		}
+
+		Emulate8080(state)
+
+		switch tt.in[0] {
+		case 0x04: // INR B
+			reg = state.b
+		case 0x0c: // INR C
+			reg = state.c
+		case 0x14: // INR D
+			reg = state.d
+		case 0x1c: // INR E
+			reg = state.e
+		case 0x24: // INR H
+			reg = state.h
+		case 0x2c: // INR L
+			reg = state.l
+		case 0x34:
+			reg = state.memory[0x01]
+		case 0x3c: // INR A
+			reg = state.a
+		default:
+			t.Errorf("TestInstructionINR invalid case: %x", tt.in[0])
+		}
+
+		if !reflect.DeepEqual(reg, tt.want) {
+			t.Errorf("TestInstructionINR reg(%x)\nhave %v \nwant %v", tt.in[0], reg, tt.want)
+		}
+	}
+}
+
+func TestInstructionDCR(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x05, 0x01}, 0x00}, // B
+		{[]uint8{0x0d, 0x01}, 0x00}, // C
+		{[]uint8{0x15, 0x01}, 0x00}, // D
+		{[]uint8{0x1d, 0x01}, 0x00}, // E
+		{[]uint8{0x25, 0x01}, 0x00}, // H
+		{[]uint8{0x2d, 0x01}, 0x00}, // L
+		{[]uint8{0x35, 0x01}, 0x00}, // M
+		{[]uint8{0x3d, 0x01}, 0x00}, // A
+
+		{[]uint8{0x05, 0x9A}, 0x99}, // B
+		{[]uint8{0x0d, 0x9A}, 0x99}, // C
+		{[]uint8{0x15, 0x9A}, 0x99}, // D
+		{[]uint8{0x1d, 0x9A}, 0x99}, // E
+		{[]uint8{0x25, 0x9A}, 0x99}, // H
+		{[]uint8{0x2d, 0x9A}, 0x99}, // L
+		{[]uint8{0x35, 0x9A}, 0x99}, // M
+		{[]uint8{0x3d, 0x9A}, 0x99}, // A
+
+		{[]uint8{0x05, 0x00}, 0xFF}, // B
+		{[]uint8{0x0d, 0x00}, 0xFF}, // C
+		{[]uint8{0x15, 0x00}, 0xFF}, // D
+		{[]uint8{0x1d, 0x00}, 0xFF}, // E
+		{[]uint8{0x25, 0x00}, 0xFF}, // H
+		{[]uint8{0x2d, 0x00}, 0xFF}, // L
+		{[]uint8{0x35, 0x00}, 0xFF}, // M
+		{[]uint8{0x3d, 0x00}, 0xFF}, // A
+	}
+
+	var reg uint8
+
+	for _, tt := range tests {
+		state := newState8080()
+		state.memory = append(state.memory, tt.in[0])
+		switch tt.in[0] {
+		case 0x05: // DCR B
+			state.b = tt.in[1]
+		case 0x0d: // DCR C
+			state.c = tt.in[1]
+		case 0x15: // DCR D
+			state.d = tt.in[1]
+		case 0x1d: // DCR E
+			state.e = tt.in[1]
+		case 0x25: // DCR H
+			state.h = tt.in[1]
+		case 0x2d: // DCR L
+			state.l = tt.in[1]
+		case 0x35: // DCR M
+			state.h = 0x00
+			state.l = 0x01
+			state.memory = append(state.memory, tt.in[1])
+		case 0x3d: // DCR A
+			state.a = tt.in[1]
+		default:
+			t.Errorf("TestInstructionDCR invalid case: %x", tt.in[0])
+		}
+
+		Emulate8080(state)
+
+		switch tt.in[0] {
+		case 0x05: // DCR B
+			reg = state.b
+		case 0x0d: // DCR C
+			reg = state.c
+		case 0x15: // DCR D
+			reg = state.d
+		case 0x1d: // DCR E
+			reg = state.e
+		case 0x25: // DCR H
+			reg = state.h
+		case 0x2d: // DCR L
+			reg = state.l
+		case 0x35: // DCR M
+			reg = state.memory[0x01]
+		case 0x3d: // DCR A
+			reg = state.a
+		default:
+			t.Errorf("TestInstructionDCR invalid case: %x", tt.in[0])
+		}
+
+		if !reflect.DeepEqual(reg, tt.want) {
+			t.Errorf("TestInstructionDCR reg(%x)\nhave %v \nwant %v", tt.in[0], reg, tt.want)
 		}
 	}
 }
@@ -138,6 +292,47 @@ func TestInstructionDADB(t *testing.T) {
 			t.Errorf("TestInstructionDADB(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[1])
 		}
 	}
+}
+
+func TestInstructionLDAX(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		{[]uint8{0x0a, 0x00, 0x01, 0x02}, 0x02},
+		{[]uint8{0x1a, 0x00, 0x01, 0x04}, 0x04},
+	}
+
+	for _, tt := range tests {
+		state := newState8080()
+		instruction := tt.in[0]
+
+		state.memory = append(state.memory, instruction)
+
+		// add one memory location for the
+		state.memory = append(state.memory, tt.in[3])
+
+		switch instruction {
+		case 0x0a: // LDAX B -> A
+			state.b = tt.in[1]
+			state.c = tt.in[2]
+		case 0x1a: // LDAX D -> A
+			state.d = tt.in[1]
+			state.e = tt.in[2]
+		default:
+			t.Errorf("TestInstructionLDAX missing case: %x", instruction)
+		}
+
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.a, uint8(tt.want)) {
+			t.Errorf("TestInstructionLDAX(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want)
+		}
+	}
+}
+
+func TestInstructionDCX(t *testing.T) {
+
 }
 
 func TestInstructionRRC(t *testing.T) {
@@ -406,6 +601,8 @@ func TestInstructionLXI(t *testing.T) {
 			lo = state.l
 		case 0x31:
 			hi, lo = pairToBytes(state.sp)
+		default:
+			t.Errorf("TestInstructionLXI missing case: %x", tt.in[0])
 		}
 
 		if !reflect.DeepEqual(hi, tt.want[0]) {
@@ -456,6 +653,8 @@ func TestInstructionMVI(t *testing.T) {
 			hi = state.l
 		case 0x3E: // MVI A
 			hi = state.a
+		default:
+			t.Errorf("TestInstructionMVI missing case: %x", tt.in[0])
 		}
 
 		if !reflect.DeepEqual(hi, tt.want[0]) {
@@ -652,8 +851,4 @@ func TestInstructionCall(t *testing.T) {
 	if !reflect.DeepEqual(state.sp, uint16(8)) {
 		t.Errorf("TestInstructionCall(%q)\nhave %v \nwant %v", 0x76, state.a, 0x76)
 	}
-}
-
-func TestScreenData(t *testing.T) {
-
 }
