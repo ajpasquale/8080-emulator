@@ -21,8 +21,8 @@ func shiftRight8(a uint8, k int) (uint8, uint8) {
 
 func add16(a uint16, b uint16) (uint16, bool) {
 	const n = 16
-	r := uint32(a + b)
-	overflow := (bits.Len32(r) > n)
+	r := uint32(a) + uint32(b)
+	overflow := (r > 0xFFFF)
 	return uint16(r), overflow
 }
 

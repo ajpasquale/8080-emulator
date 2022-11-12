@@ -40,29 +40,68 @@ func TestInstructionSTAX(t *testing.T) {
 	}
 }
 
-func TestInstructionINXB(t *testing.T) {
+func TestInstructionINX(t *testing.T) {
 	tests := []struct {
 		in   []uint8
-		want []uint8
+		want uint16
 	}{
-		{[]uint8{0x00, 0x00}, []uint8{0x00, 0x01}},
-		{[]uint8{0xAB, 0xCD}, []uint8{0xAB, 0xCE}},
-		{[]uint8{0xFF, 0xFF}, []uint8{0x00, 0x00}},
+		// instruction, state 1, state 2, val, before val   want: after val
+		{[]uint8{0x03, 0x00, 0x01}, 0x0002},
+		{[]uint8{0x13, 0x00, 0x02}, 0x0003},
+		{[]uint8{0x23, 0x00, 0x03}, 0x0004},
+		{[]uint8{0x33, 0x00, 0x04}, 0x0005},
+
+		{[]uint8{0x03, 0x00, 0xFF}, 0x0100},
+		{[]uint8{0x13, 0xFF, 0x00}, 0xFF01},
+		{[]uint8{0x23, 0xFF, 0xFF}, 0x0000},
+		{[]uint8{0x33, 0xFA, 0xE0}, 0xFAE1},
 	}
 
 	for _, tt := range tests {
 		state := newState8080()
-		state.b = tt.in[0]
-		state.c = tt.in[1]
-		state.memory = append(state.memory, 0x03)
-		Emulate8080(state)
-		if !reflect.DeepEqual(state.b, tt.want[0]) {
-			t.Errorf("TestInstructionINXB(%q)\nhave %v \nwant %v", tt.in, state.b, tt.want[0])
+		instruction := tt.in[0]
+
+		state.memory = append(state.memory, instruction)
+
+		switch instruction {
+		case 0x03: // B
+			state.b = tt.in[1]
+			state.c = tt.in[2]
+		case 0x13: // D
+			state.d = tt.in[1]
+			state.e = tt.in[2]
+		case 0x23: // H
+			state.h = tt.in[1]
+			state.l = tt.in[2]
+		case 0x33: // SP
+			hi := tt.in[1]
+			lo := tt.in[2]
+			state.sp = bytesToPair(hi, lo)
+		default:
+			t.Errorf("TestInstructionINX missing case: %x", instruction)
 		}
-		if !reflect.DeepEqual(state.c, tt.want[1]) {
-			t.Errorf("TestInstructionINXB(%q)\nhave %v \nwant %v", tt.in, state.c, tt.want[1])
+
+		Emulate8080(state)
+
+		var reg uint16
+		switch instruction {
+		case 0x03: // B
+			reg = bytesToPair(state.b, state.c)
+		case 0x13: // D
+			reg = bytesToPair(state.d, state.e)
+		case 0x23: // H
+			reg = bytesToPair(state.h, state.l)
+		case 0x33: // SP
+			reg = state.sp
+		default:
+			t.Errorf("TestInstructionINX missing case: %x", instruction)
+		}
+
+		if !reflect.DeepEqual(reg, tt.want) {
+			t.Errorf("TestInstructionINX(%q)\nhave %v \nwant %v", tt.in, reg, tt.want)
 		}
 	}
+
 }
 
 func TestInstructionINR(t *testing.T) {
@@ -270,26 +309,59 @@ func TestInstructionRLC(t *testing.T) {
 	}
 }
 
-func TestInstructionDADB(t *testing.T) {
+func TestInstructionDAD(t *testing.T) {
 	tests := []struct {
-		in   []uint16
+		in   []uint8
 		want []uint16
 	}{
-		//         H,L   +   B,C   =   HL
-		{[]uint16{0x2061, 0x4050}, []uint16{0x60B1, 1}},
+		// instruction state1,state2, state3,state4   value, carry flag
+		// HL + HL only uses state3 and state4
+		{[]uint8{0x09, 0x00, 0x00, 0x00, 0x00}, []uint16{0x0000, 0}},
+		{[]uint8{0x19, 0x00, 0x00, 0x00, 0x00}, []uint16{0x0000, 0}},
+		{[]uint8{0x39, 0x00, 0x00, 0x00, 0x00}, []uint16{0x0000, 0}},
+
+		{[]uint8{0x09, 0x80, 0x00, 0x00, 0x08}, []uint16{0x8008, 0}},
+		{[]uint8{0x19, 0x33, 0x9F, 0xA1, 0x7B}, []uint16{0xD51A, 0}},
+		{[]uint8{0x39, 0x00, 0x40, 0x00, 0x40}, []uint16{0x0080, 0}},
+
+		{[]uint8{0x09, 0xFF, 0x00, 0x00, 0xFF}, []uint16{0xFFFF, 0}},
+		{[]uint8{0x19, 0x33, 0x9F, 0xA1, 0x7B}, []uint16{0xD51A, 0}},
+		{[]uint8{0x39, 0x00, 0x40, 0x00, 0x40}, []uint16{0x0080, 0}},
+
+		{[]uint8{0x29, 0x00, 0x00, 0xFF, 0xFF}, []uint16{0xFFFE, 1}},
+		{[]uint8{0x29, 0x00, 0x00, 0x00, 0xFF}, []uint16{0x01FE, 0}},
 	}
 	for _, tt := range tests {
 		state := newState8080()
-		state.h, state.l = pairToBytes(tt.in[0])
-		state.b, state.c = pairToBytes(tt.in[1])
-		state.memory = append(state.memory, 0x09)
+		instruction := tt.in[0]
+		state.memory = append(state.memory, instruction)
+
+		switch instruction {
+		case 0x09: // DAD B (BC+HL) -> HL
+			state.b = tt.in[1]
+			state.c = tt.in[2]
+		case 0x19: // DAD D (DE+HL) -> HL
+			state.d = tt.in[1]
+			state.e = tt.in[2]
+		case 0x29: // DAD H (HL+HL) -> HL
+		case 0x39: // DAD SP (SP+HL) -> HL
+			hi := tt.in[1]
+			lo := tt.in[2]
+			state.sp = bytesToPair(hi, lo)
+		default:
+			t.Errorf("TestInstructionDAD missing case: %x", instruction)
+		}
+
+		state.h = tt.in[3]
+		state.l = tt.in[4]
+
 		Emulate8080(state)
 
 		if !reflect.DeepEqual(bytesToPair(state.h, state.l), tt.want[0]) {
-			t.Errorf("TestInstructionDADB(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
+			t.Errorf("TestInstructionDAD(%q)\nhave %v \nwant %v", tt.in, state.a, tt.want[0])
 		}
 		if !reflect.DeepEqual(state.cc.cy, uint8(tt.want[1])) {
-			t.Errorf("TestInstructionDADB(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[1])
+			t.Errorf("TestInstructionDAD carry(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[1])
 		}
 	}
 }
@@ -332,6 +404,70 @@ func TestInstructionLDAX(t *testing.T) {
 }
 
 func TestInstructionDCX(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint16
+	}{
+		// instruction, state 1, state 2, val, before val   want: after val
+		{[]uint8{0x0b, 0x00, 0x02}, 0x0001},
+		{[]uint8{0x1b, 0x00, 0x02}, 0x0001},
+		{[]uint8{0x2b, 0x00, 0x02}, 0x0001},
+		{[]uint8{0x3b, 0x00, 0x02}, 0x0001},
+
+		{[]uint8{0x0b, 0x00, 0xFF}, 0x00FE},
+		{[]uint8{0x1b, 0x00, 0x00}, 0xFFFF},
+		{[]uint8{0x2b, 0xFF, 0x00}, 0xFEFF},
+		{[]uint8{0x3b, 0xAE, 0x8C}, 0xAE8B},
+	}
+
+	for _, tt := range tests {
+		state := newState8080()
+		instruction := tt.in[0]
+
+		state.memory = append(state.memory, instruction)
+
+		switch instruction {
+		case 0x0b: //  B
+			//bc
+			state.b = tt.in[1]
+			state.c = tt.in[2]
+		case 0x1b: //  D
+			//de
+			state.d = tt.in[1]
+			state.e = tt.in[2]
+		case 0x2b: //  H
+			//hl
+			state.h = tt.in[1]
+			state.l = tt.in[2]
+		case 0x3b: //  SP
+			//sp
+			hi := tt.in[1]
+			lo := tt.in[2]
+			state.sp = bytesToPair(hi, lo)
+		default:
+			t.Errorf("TestInstructionDCX missing case: %x", instruction)
+		}
+
+		Emulate8080(state)
+
+		var reg uint16
+		switch instruction {
+		case 0x0b: //  B
+			reg = bytesToPair(state.b, state.c)
+		case 0x1b: //  D
+			reg = bytesToPair(state.d, state.e)
+		case 0x2b: //  H
+			reg = bytesToPair(state.h, state.l)
+		case 0x3b: //  SP
+			reg = state.sp
+		default:
+			t.Errorf("TestInstructionDCX missing case: %x", instruction)
+		}
+
+		if !reflect.DeepEqual(reg, tt.want) {
+			t.Errorf("TestInstructionDCX(%q)\nhave %v \nwant %v", tt.in, reg, tt.want)
+		}
+	}
 
 }
 

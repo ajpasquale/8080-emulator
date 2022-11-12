@@ -131,8 +131,8 @@ func Emulate8080(state *state8080) int {
 		state.cc.cy = 0
 		bc := bytesToPair(state.b, state.c)
 		hl := bytesToPair(state.h, state.l)
-		r, ok := add16(bc, hl)
-		if !ok {
+		r, carry := add16(bc, hl)
+		if carry {
 			state.cc.cy = 1
 		}
 		state.h, state.l = pairToBytes(r)
@@ -182,8 +182,8 @@ func Emulate8080(state *state8080) int {
 		state.cc.cy = 0
 		de := bytesToPair(state.d, state.e)
 		hl := bytesToPair(state.h, state.l)
-		r, ok := add16(de, hl)
-		if !ok {
+		r, carry := add16(de, hl)
+		if carry {
 			state.cc.cy = 1
 		}
 		state.h, state.l = pairToBytes(r)
@@ -240,8 +240,8 @@ func Emulate8080(state *state8080) int {
 	case 0x29: // DAD H (HL+HL) -> HL
 		state.cc.cy = 0
 		hl := bytesToPair(state.h, state.l)
-		r, ok := add16(hl, hl)
-		if !ok {
+		r, carry := add16(hl, hl)
+		if carry {
 			state.cc.cy = 1
 		}
 		state.h, state.l = pairToBytes(r)
@@ -295,8 +295,8 @@ func Emulate8080(state *state8080) int {
 		state.cc.cy = 0
 		hl := bytesToPair(state.h, state.l)
 		sp := state.sp
-		r, ok := add16(hl, sp)
-		if !ok {
+		r, carry := add16(hl, sp)
+		if carry {
 			state.cc.cy = 1
 		}
 		state.h, state.l = pairToBytes(r)

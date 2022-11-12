@@ -249,3 +249,26 @@ func TestSetFlagsFromPSW(t *testing.T) {
 		}
 	}
 }
+
+func TestAdd16(t *testing.T) {
+	tests := []struct {
+		in   []uint16
+		want []uint16
+	}{
+		//         a        b              (a+b) carry flag
+		{[]uint16{0x339F, 0xA17B}, []uint16{0xD51A, 0}},
+		{[]uint16{0x0000, 0x0000}, []uint16{0x0000, 0}},
+		{[]uint16{0xFFFF, 0x0001}, []uint16{0x0000, 1}},
+	}
+	for _, tt := range tests {
+		have, cb := add16(tt.in[0], tt.in[1])
+
+		if !reflect.DeepEqual(have, tt.want[0]) {
+			t.Errorf("TestAdd16 value(%q)\nhave %v \nwant %v", tt.in, have, tt.want[0])
+		}
+		carry := Btoi(cb)
+		if !reflect.DeepEqual(uint16(carry), tt.want[1]) {
+			t.Errorf("TestAdd16 carry(%x)\nhave %v \nwant %v", tt.in, carry, tt.want[1])
+		}
+	}
+}
