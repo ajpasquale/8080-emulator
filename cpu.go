@@ -317,7 +317,11 @@ func Emulate8080(state *state8080) int {
 		state.a = state.memory[state.pc]
 		state.pc++
 	case 0x3f: // CMC
-		state.cc.cy--
+		if state.cc.cy == 1 {
+			state.cc.cy = 0
+		} else {
+			state.cc.cy = 1
+		}
 	case 0x40: // MOV B,B
 	case 0x41: // MOV B,C
 		state.b = state.c

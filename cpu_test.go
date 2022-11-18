@@ -101,7 +101,6 @@ func TestInstructionINX(t *testing.T) {
 			t.Errorf("TestInstructionINX(%q)\nhave %v \nwant %v", tt.in, reg, tt.want)
 		}
 	}
-
 }
 
 func TestInstructionINR(t *testing.T) {
@@ -366,6 +365,195 @@ func TestInstructionDAD(t *testing.T) {
 	}
 }
 
+func TestInstructionLDA(t *testing.T) {
+	ptests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		//instruction, lo, hi, value
+		{[]uint8{0x3a, 0x05, 0x00, 0x00}, 0x00},
+		{[]uint8{0x3a, 0x05, 0x00, 0x01}, 0x01},
+		{[]uint8{0x3a, 0x05, 0x00, 0xFF}, 0xFF},
+	}
+
+	for _, tt := range ptests {
+		state := newState8080()
+		instruction := tt.in[0]
+
+		state.memory = append(state.memory, instruction)
+		state.memory = append(state.memory, tt.in[1]) //lo addr
+		state.memory = append(state.memory, tt.in[2]) //hi addr
+		state.memory = append(state.memory, 0x00)     // buffer
+		state.memory = append(state.memory, 0x00)     // buffer
+		state.memory = append(state.memory, tt.in[3]) // value to be moved to state.a
+
+		Emulate8080(state)
+
+		have := state.a
+
+		if !reflect.DeepEqual(have, tt.want) {
+			t.Errorf("TestInstructionLDA(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
+		}
+	}
+
+	ntests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		//instruction, lo, hi, value
+		{[]uint8{0x3a, 0x05, 0x00, 0x01}, 0x00},
+		{[]uint8{0x3a, 0x05, 0x00, 0x00}, 0x01},
+		{[]uint8{0x3a, 0x05, 0x00, 0xFA}, 0xFF},
+	}
+
+	for _, tt := range ntests {
+		state := newState8080()
+		instruction := tt.in[0]
+
+		state.memory = append(state.memory, instruction)
+		state.memory = append(state.memory, tt.in[1]) //lo addr
+		state.memory = append(state.memory, tt.in[2]) //hi addr
+		state.memory = append(state.memory, 0x00)     // buffer
+		state.memory = append(state.memory, 0x00)     // buffer
+		state.memory = append(state.memory, tt.in[3]) // value to be moved to state.a
+
+		Emulate8080(state)
+
+		have := state.a
+
+		if reflect.DeepEqual(have, tt.want) {
+			t.Errorf("TestInstructionLDA(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
+		}
+	}
+
+}
+func TestInstructionLHLD(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want []uint8
+	}{
+		//    instruction, val1, val2
+		{[]uint8{0x2a, 0x00, 0x00}, []uint8{0x00, 0x00}},
+		{[]uint8{0x2a, 0x01, 0x00}, []uint8{0x01, 0x00}},
+		{[]uint8{0x2a, 0x01, 0x01}, []uint8{0x01, 0x01}},
+		{[]uint8{0x2a, 0x02, 0x03}, []uint8{0x02, 0x03}},
+		{[]uint8{0x2a, 0x05, 0x03}, []uint8{0x05, 0x03}},
+		{[]uint8{0x2a, 0xFF, 0xFF}, []uint8{0xFF, 0xFF}},
+	}
+
+	for _, tt := range tests {
+		state := newState8080()
+		instruction := tt.in[0]
+
+		state.memory = append(state.memory, instruction)
+		state.memory = append(state.memory, tt.in[1]) // state.l
+		state.memory = append(state.memory, tt.in[2]) // state.h
+
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.l, tt.want[0]) {
+			t.Errorf("TestInstructionLHLD(%q)\nhave %v \nwant %v", tt.in, state.l, tt.want[0])
+		}
+		if !reflect.DeepEqual(state.h, tt.want[1]) {
+			t.Errorf("TestInstructionLHLD(%q)\nhave %v \nwant %v", tt.in, state.l, tt.want[1])
+		}
+	}
+}
+
+func TestInstructionCMC(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		// instruction, carry, expected carry
+		{[]uint8{0x3f, 0x00}, 0x01},
+		{[]uint8{0x3f, 0x01}, 0x00},
+	}
+
+	for _, tt := range tests {
+		state := newState8080()
+		instruction := tt.in[0]
+		state.cc.cy = tt.in[1]
+
+		state.memory = append(state.memory, instruction)
+
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.cc.cy, tt.want) {
+			t.Errorf("TestInstructionCMC(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want)
+		}
+	}
+}
+
+func TestInstructionSHLD(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want []uint8
+	}{
+		//instruction   l     h              l      h
+		{[]uint8{0x22, 0x00, 0x00}, []uint8{0x00, 0x00}},
+		{[]uint8{0x22, 0x01, 0x01}, []uint8{0x01, 0x01}},
+		{[]uint8{0x22, 0xFF, 0xFF}, []uint8{0xFF, 0xFF}},
+		{[]uint8{0x22, 0x00, 0xFF}, []uint8{0x00, 0xFF}},
+		{[]uint8{0x22, 0xFF, 0x00}, []uint8{0xFF, 0x00}},
+	}
+
+	for _, tt := range tests {
+		state := newState8080()
+		instruction := tt.in[0]
+
+		state.memory = append(state.memory, instruction)
+
+		state.memory = append(state.memory, 0x00) // state.l
+		state.memory = append(state.memory, 0x00) // state.h
+
+		state.l = tt.in[1]
+		state.h = tt.in[2]
+
+		Emulate8080(state)
+
+		if !reflect.DeepEqual(state.memory[1], tt.want[0]) {
+			t.Errorf("TestInstructionLHLD(%q)\nhave %v \nwant %v", tt.in, state.l, tt.want[0])
+		}
+		if !reflect.DeepEqual(state.memory[2], tt.want[1]) {
+			t.Errorf("TestInstructionLHLD(%q)\nhave %v \nwant %v", tt.in, state.l, tt.want[1])
+		}
+	}
+}
+func TestInstructionSTA(t *testing.T) {
+	tests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		//instruction, lo, hi, state.a
+		{[]uint8{0x32, 0x05, 0x00, 0x01}, 0x01},
+		{[]uint8{0x32, 0x05, 0x00, 0x0F}, 0x0F},
+		{[]uint8{0x32, 0x05, 0x00, 0xFF}, 0xFF},
+	}
+
+	for _, tt := range tests {
+		state := newState8080()
+		instruction := tt.in[0]
+
+		state.memory = append(state.memory, instruction)
+		state.memory = append(state.memory, tt.in[1]) // lo addr
+		state.memory = append(state.memory, tt.in[2]) // hi addr
+		state.memory = append(state.memory, 0x00)     // buffer
+		state.memory = append(state.memory, 0x00)     // buffer
+		state.memory = append(state.memory, 0x00)     // value pointed to by lo/hi addr
+
+		state.a = tt.in[3]
+
+		Emulate8080(state)
+
+		addr := bytesToPair(tt.in[2], tt.in[1])
+
+		if !reflect.DeepEqual(state.memory[addr], tt.want) {
+			t.Errorf("TestInstructionSTA(%q)\nhave %v \nwant %v", tt.in, state.memory[addr], tt.want)
+		}
+	}
+}
+
 func TestInstructionLDAX(t *testing.T) {
 	tests := []struct {
 		in   []uint8
@@ -468,7 +656,6 @@ func TestInstructionDCX(t *testing.T) {
 			t.Errorf("TestInstructionDCX(%q)\nhave %v \nwant %v", tt.in, reg, tt.want)
 		}
 	}
-
 }
 
 func TestInstructionRRC(t *testing.T) {
