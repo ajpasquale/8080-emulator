@@ -272,3 +272,37 @@ func TestAdd16(t *testing.T) {
 		}
 	}
 }
+
+func TestAdd8(t *testing.T) {
+	// positive tests
+	ptests := []struct {
+		in   []uint8
+		want uint8
+	}{
+		//         a        b
+		{[]uint8{0x00, 0x00}, 0x00},
+		{[]uint8{0x00, 0x01}, 0x01},
+		{[]uint8{0x01, 0x00}, 0x01},
+		{[]uint8{0x01, 0x01}, 0x02},
+		{[]uint8{0x05, 0x05}, 0x0A},
+		{[]uint8{0x09, 0x06}, 0x0F},
+		{[]uint8{0xFF, 0x01}, 0x00},
+		{[]uint8{0xFF, 0x02}, 0x01},
+		{[]uint8{0xFF, 0x0F}, 0x0E},
+		{[]uint8{0xFF, 0xFF}, 0xFE},
+		{[]uint8{0x06, 0x09}, 0x0F},
+		{[]uint8{0x01, 0xFF}, 0x00},
+		{[]uint8{0x02, 0xFF}, 0x01},
+		{[]uint8{0x0F, 0xFF}, 0x0E},
+		{[]uint8{0xFF, 0xFF}, 0xFE},
+	}
+	for _, tt := range ptests {
+		state := newState8080()
+
+		have := add8(state, tt.in[0], tt.in[1])
+
+		if !reflect.DeepEqual(have, tt.want) {
+			t.Errorf("TestAdd8 value(%q)\nhave %v \nwant %v", tt.in, have, tt.want)
+		}
+	}
+}

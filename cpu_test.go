@@ -1,10 +1,49 @@
 package emulator
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
+func TestCpu(t *testing.T) {
+	cycles := 0
+	state := InitializeState()
+
+	now := time.Now()
+	LoadSpaceInvaders(state)
+	timer := now
+	for {
+
+		// RST 1 - middle of the screen interrupt
+		if time.Since(timer) > 30*8000*time.Microsecond && GetIntEnabled(state) == 1 {
+			//Interrupt8080(state, )
+			Restart8080(state, RST1)
+		}
+		// RST 2 - end of screen interrupt
+		if time.Since(timer) > 30*16000*time.Microsecond && GetIntEnabled(state) == 1 {
+			// problem near 17cd db 02	 IN	 $02
+			Restart8080(state, RST2)
+			timer = time.Now()
+		}
+		if state.pc == 0x026C {
+			fmt.Println("break")
+		}
+		// INPUT
+		GetInput(state)
+		// OUTPUT
+		GetOutput(state)
+		fmt.Printf("pc: %x, a: %x, h: %x, l: %x, d: %x, e: %x\n",
+			state.pc,
+			state.a,
+			state.h,
+			state.l,
+			state.d,
+			state.e)
+		cycles += Emulate8080(state)
+	}
+}
 func TestInstructionSTAX(t *testing.T) {
 	tests := []struct {
 		in   []uint8

@@ -105,9 +105,11 @@ func sub8WithBorrow(state *state8080, a, b uint8) uint8 {
 	res = sub8(state, res, cy)
 	return uint8(res & 0xFF)
 }
+
 func twosCompliment(a uint8) uint8 {
 	return ^a + 1
 }
+
 func Btoi(b bool) uint8 {
 	if b {
 		return 1

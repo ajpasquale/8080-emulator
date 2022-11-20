@@ -904,9 +904,11 @@ func Emulate8080(state *state8080) int {
 			state.pc += 2
 		}
 	case 0xe3: // XTHL
-		hl := bytesToPair(state.h, state.l)
-		state.h, state.l = pairToBytes(state.sp)
-		state.sp = hl
+		h, l := state.h, state.l
+		state.l = state.memory[state.sp]
+		state.h = state.memory[state.sp+1]
+		state.memory[state.sp] = l
+		state.memory[state.sp+1] = h
 	case 0xe4: // CPO
 		if state.cc.p == 0 {
 			ret := state.pc + 2
