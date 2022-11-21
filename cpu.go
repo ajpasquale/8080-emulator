@@ -1057,3 +1057,13 @@ func Emulate8080(state *state8080) int {
 
 	return cycles8080[opCode]
 }
+
+func writeByteToMemory(state *state8080, v uint8, addr uint16) {
+	if addr > 0x1FFF {
+		state.memory[addr] = v
+	} else {
+		fmt.Fprintf(os.Stderr, "writeByteToMemory invalid write address: %x\n", addr)
+		os.Exit(1)
+		return
+	}
+}
