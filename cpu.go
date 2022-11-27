@@ -47,18 +47,19 @@ type conditionCodes struct {
 }
 
 type state8080 struct {
-	a          uint8
-	b          uint8
-	c          uint8
-	d          uint8
-	e          uint8
-	h          uint8
-	l          uint8
-	sp         uint16
-	pc         uint16
-	memory     []uint8
-	cc         conditionCodes
-	int_enable uint8
+	a           uint8
+	b           uint8
+	c           uint8
+	d           uint8
+	e           uint8
+	h           uint8
+	l           uint8
+	sp          uint16
+	pc          uint16
+	memory      []uint8
+	cc          conditionCodes
+	int_enable  uint8
+	test_enable uint8
 }
 
 func newState8080() *state8080 {
@@ -71,18 +72,19 @@ func newState8080() *state8080 {
 		pad: 0,
 	}
 	return &state8080{
-		a:          0,
-		b:          0,
-		c:          0,
-		d:          0,
-		e:          0,
-		h:          0,
-		l:          0,
-		sp:         0,
-		pc:         0,
-		memory:     make([]uint8, 0, 0x10000), // 16K
-		cc:         cc,
-		int_enable: 0,
+		a:           0,
+		b:           0,
+		c:           0,
+		d:           0,
+		e:           0,
+		h:           0,
+		l:           0,
+		sp:          0,
+		pc:          0,
+		memory:      make([]uint8, 0, 0x10000), // 16K
+		cc:          cc,
+		int_enable:  0,
+		test_enable: 0,
 	}
 }
 
@@ -193,7 +195,6 @@ func GetOutput(state *state8080) {
 		case 0x05: // discrete sounds
 		case 0x06: // watchdog?
 		}
-
 	}
 }
 
@@ -209,8 +210,9 @@ func Emulate8080(state *state8080) int {
 		state.b = state.memory[state.pc]
 		state.pc++
 	case 0x02: // STAX B
-		bc := bytesToPair(state.b, state.c)
-		state.memory[bc] = state.a
+		addr := bytesToPair(state.b, state.c)
+		//state.memory[bc] = state.a
+		writeByteToMemory(state, state.a, addr)
 	case 0x03: // INX B
 		bc := bytesToPair(state.b, state.c)
 		bc += 1
@@ -260,8 +262,8 @@ func Emulate8080(state *state8080) int {
 		state.d = state.memory[state.pc]
 		state.pc++
 	case 0x12: // STAX D
-		de := bytesToPair(state.d, state.e)
-		state.memory[de] = state.a
+		addr := bytesToPair(state.d, state.e)
+		writeByteToMemory(state, state.a, addr)
 	case 0x13: // INX D
 		de := bytesToPair(state.d, state.e)
 		de += 1
@@ -375,18 +377,22 @@ func Emulate8080(state *state8080) int {
 		hi := state.memory[state.pc]
 		state.pc++
 		addr := bytesToPair(hi, lo)
-		state.memory[addr] = state.a
+		//state.memory[addr] = state.a
+		writeByteToMemory(state, state.a, addr)
 	case 0x33: // INX SP
 		state.sp++
 	case 0x34: // INR M
-		m := bytesToPair(state.h, state.l)
-		state.memory[m] = add8(state, state.memory[m], 1)
+		addr := bytesToPair(state.h, state.l)
+		res := add8(state, state.memory[addr], 1)
+		writeByteToMemory(state, res, addr)
 	case 0x35: // DCR M
-		m := bytesToPair(state.h, state.l)
-		state.memory[m] = sub8(state, state.memory[m], 1)
+		addr := bytesToPair(state.h, state.l)
+		res := sub8(state, state.memory[addr], 1)
+		writeByteToMemory(state, res, addr)
 	case 0x36: // MVI M
-		m := bytesToPair(state.h, state.l)
-		state.memory[m] = state.memory[state.pc]
+		addr := bytesToPair(state.h, state.l)
+		res := state.memory[state.pc]
+		writeByteToMemory(state, res, addr)
 		state.pc++
 	case 0x37: // STC
 		state.cc.cy = 1
@@ -520,27 +526,27 @@ func Emulate8080(state *state8080) int {
 		state.l = state.a
 	case 0x70: // MOV M,B
 		addr := bytesToPair(state.h, state.l)
-		state.memory[addr] = state.b
+		writeByteToMemory(state, state.b, addr)
 	case 0x71: // MOV M,C
 		addr := bytesToPair(state.h, state.l)
-		state.memory[addr] = state.c
+		writeByteToMemory(state, state.c, addr)
 	case 0x72: // MOV M, D
 		addr := bytesToPair(state.h, state.l)
-		state.memory[addr] = state.d
+		writeByteToMemory(state, state.d, addr)
 	case 0x73: // MOV M, E
 		addr := bytesToPair(state.h, state.l)
-		state.memory[addr] = state.e
+		writeByteToMemory(state, state.e, addr)
 	case 0x74: // MOV M, H
 		addr := bytesToPair(state.h, state.l)
-		state.memory[addr] = state.h
+		writeByteToMemory(state, state.h, addr)
 	case 0x75: // MOV M, L
 		addr := bytesToPair(state.h, state.l)
-		state.memory[addr] = state.l
+		writeByteToMemory(state, state.l, addr)
 	case 0x76: // HLT
 		os.Exit(0x76)
 	case 0x77: // MOV M, A
 		addr := bytesToPair(state.h, state.l)
-		state.memory[addr] = state.a
+		writeByteToMemory(state, state.a, addr)
 	case 0x78: // MOV A,B
 		state.a = state.b
 	case 0x79: // MOV A,C
@@ -747,17 +753,25 @@ func Emulate8080(state *state8080) int {
 	case 0xc4: // CNZ
 		if state.cc.z == 1 {
 			ret := state.pc + 2
-			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
+			hi, lo := pairToBytes(ret)
+			writeByteToMemory(state, hi, state.sp-1)
+			writeByteToMemory(state, lo, state.sp-2)
+			//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
 			state.sp -= 2
-			hi := state.memory[state.pc+1]
-			lo := state.memory[state.pc]
+
+			hi = state.memory[state.pc+1]
+			lo = state.memory[state.pc]
 			state.pc = bytesToPair(hi, lo)
 		} else {
 			state.pc += 2
 		}
 	case 0xc5: // PUSH B
-		state.memory[state.sp-1] = state.b
-		state.memory[state.sp-2] = state.c
+		writeByteToMemory(state, state.b, state.sp-1)
+		writeByteToMemory(state, state.c, state.sp-2)
+		// state.memory[state.sp-1] = state.b
+		// state.memory[state.sp-2] = state.c
 		state.sp -= 2
 	case 0xc6: // ADI
 		state.a = add8(state, state.a, state.memory[state.pc])
@@ -765,7 +779,10 @@ func Emulate8080(state *state8080) int {
 	case 0xc7: // RST 0
 		// push pc to stack and jump to 0x0000
 		state.int_enable = 0
-		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		hi, lo := pairToBytes(state.pc)
+		writeByteToMemory(state, hi, state.sp-1)
+		writeByteToMemory(state, lo, state.sp-2)
 		state.sp -= 2
 		state.pc = bytesToPair(0x00, 0x00)
 	case 0xc8: // RZ
@@ -785,29 +802,57 @@ func Emulate8080(state *state8080) int {
 	case 0xcb: // -
 	case 0xcc: // CZ
 		if state.cc.z == 0 {
+			// ret := state.pc + 2
+			// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			// state.sp -= 2
+			// hi := state.memory[state.pc+1]
+			// lo := state.memory[state.pc]
+			// state.pc = bytesToPair(hi, lo)
 			ret := state.pc + 2
-			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
+			hi, lo := pairToBytes(ret)
+			writeByteToMemory(state, hi, state.sp-1)
+			writeByteToMemory(state, lo, state.sp-2)
+			//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
 			state.sp -= 2
-			hi := state.memory[state.pc+1]
-			lo := state.memory[state.pc]
+
+			hi = state.memory[state.pc+1]
+			lo = state.memory[state.pc]
 			state.pc = bytesToPair(hi, lo)
 		} else {
 			state.pc += 2
 		}
 	case 0xcd: // CALL
+		// ret := state.pc + 2
+		// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+		// state.sp -= 2
+		// hi := state.memory[state.pc+1]
+		// lo := state.memory[state.pc]
+		// state.pc = bytesToPair(hi, lo)
 		ret := state.pc + 2
-		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
+		hi, lo := pairToBytes(ret)
+		writeByteToMemory(state, hi, state.sp-1)
+		writeByteToMemory(state, lo, state.sp-2)
+		//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
 		state.sp -= 2
-		hi := state.memory[state.pc+1]
-		lo := state.memory[state.pc]
+
+		hi = state.memory[state.pc+1]
+		lo = state.memory[state.pc]
 		state.pc = bytesToPair(hi, lo)
 	case 0xce: // ACI
 		state.a = add8WithCarry(state, state.a, state.memory[state.pc])
 		state.pc++
 	case 0xcf: // RST 1
 		// push pc to stack and jump to 0x0008
-		state.int_enable = 0
-		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.int_enable = 0
+		// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.sp -= 2
+		hi, lo := pairToBytes(state.pc)
+		writeByteToMemory(state, hi, state.sp-1)
+		writeByteToMemory(state, lo, state.sp-2)
 		state.sp -= 2
 		state.pc = bytesToPair(0x00, 0x08)
 	case 0xd0: // RNC
@@ -830,18 +875,32 @@ func Emulate8080(state *state8080) int {
 		state.pc++
 	case 0xd4: // CNC
 		if state.cc.cy == 0 {
+			// ret := state.pc + 2
+			// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			// state.sp -= 2
+			// hi := state.memory[state.pc+1]
+			// lo := state.memory[state.pc]
+			// state.pc = bytesToPair(hi, lo)
 			ret := state.pc + 2
-			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
+			hi, lo := pairToBytes(ret)
+			writeByteToMemory(state, hi, state.sp-1)
+			writeByteToMemory(state, lo, state.sp-2)
+			//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
 			state.sp -= 2
-			hi := state.memory[state.pc+1]
-			lo := state.memory[state.pc]
+
+			hi = state.memory[state.pc+1]
+			lo = state.memory[state.pc]
 			state.pc = bytesToPair(hi, lo)
 		} else {
 			state.pc += 2
 		}
 	case 0xd5: // PUSH D
-		state.memory[state.sp-1] = state.d
-		state.memory[state.sp-2] = state.e
+		//state.memory[state.sp-1] = state.d
+		//state.memory[state.sp-2] = state.e
+		writeByteToMemory(state, state.d, state.sp-1)
+		writeByteToMemory(state, state.e, state.sp-2)
 		state.sp -= 2
 	case 0xd6: // SUI
 		state.a = sub8(state, state.a, state.memory[state.pc])
@@ -849,7 +908,11 @@ func Emulate8080(state *state8080) int {
 	case 0xd7: // RST 2
 		// push pc to stack and jump to 0x0010
 		state.int_enable = 0
-		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.sp -= 2
+		hi, lo := pairToBytes(state.pc)
+		writeByteToMemory(state, hi, state.sp-1)
+		writeByteToMemory(state, lo, state.sp-2)
 		state.sp -= 2
 		state.pc = bytesToPair(0x00, 0x10)
 	case 0xd8: // RC
@@ -869,11 +932,23 @@ func Emulate8080(state *state8080) int {
 		state.pc++
 	case 0xdc: // CC
 		if state.cc.cy == 1 {
+			// ret := state.pc + 2
+			// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			// state.sp -= 2
+			// hi := state.memory[state.pc+1]
+			// lo := state.memory[state.pc]
+			// state.pc = bytesToPair(hi, lo)
 			ret := state.pc + 2
-			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
+			hi, lo := pairToBytes(ret)
+			writeByteToMemory(state, hi, state.sp-1)
+			writeByteToMemory(state, lo, state.sp-2)
+			//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
 			state.sp -= 2
-			hi := state.memory[state.pc+1]
-			lo := state.memory[state.pc]
+
+			hi = state.memory[state.pc+1]
+			lo = state.memory[state.pc]
 			state.pc = bytesToPair(hi, lo)
 		} else {
 			state.pc += 2
@@ -885,7 +960,11 @@ func Emulate8080(state *state8080) int {
 	case 0xdf: // RST 3
 		// push pc to stack and jump to 0x0018
 		state.int_enable = 0
-		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.sp -= 2
+		hi, lo := pairToBytes(state.pc)
+		writeByteToMemory(state, hi, state.sp-1)
+		writeByteToMemory(state, lo, state.sp-2)
 		state.sp -= 2
 		state.pc = bytesToPair(0x00, 0x18)
 	case 0xe0: // RPO
@@ -907,22 +986,38 @@ func Emulate8080(state *state8080) int {
 		h, l := state.h, state.l
 		state.l = state.memory[state.sp]
 		state.h = state.memory[state.sp+1]
-		state.memory[state.sp] = l
-		state.memory[state.sp+1] = h
+		// state.memory[state.sp] = l
+		// state.memory[state.sp+1] = h
+		writeByteToMemory(state, l, state.sp)
+		writeByteToMemory(state, h, state.sp+1)
 	case 0xe4: // CPO
 		if state.cc.p == 0 {
+			// ret := state.pc + 2
+			// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			// state.sp -= 2
+			// hi := state.memory[state.pc+1]
+			// lo := state.memory[state.pc]
+			// state.pc = bytesToPair(hi, lo)
 			ret := state.pc + 2
-			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
+			hi, lo := pairToBytes(ret)
+			writeByteToMemory(state, hi, state.sp-1)
+			writeByteToMemory(state, lo, state.sp-2)
+			//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
 			state.sp -= 2
-			hi := state.memory[state.pc+1]
-			lo := state.memory[state.pc]
+
+			hi = state.memory[state.pc+1]
+			lo = state.memory[state.pc]
 			state.pc = bytesToPair(hi, lo)
 		} else {
 			state.pc += 2
 		}
 	case 0xe5: // PUSH H
-		state.memory[state.sp-1] = state.h
-		state.memory[state.sp-2] = state.l
+		// state.memory[state.sp-1] = state.h
+		// state.memory[state.sp-2] = state.l
+		writeByteToMemory(state, state.h, state.sp-1)
+		writeByteToMemory(state, state.l, state.sp-2)
 		state.sp -= 2
 	case 0xe6: // ANI
 		state.a = state.a & state.memory[state.pc]
@@ -931,7 +1026,11 @@ func Emulate8080(state *state8080) int {
 	case 0xe7: // RST 4
 		// push pc to stack and jump to 0x0020
 		state.int_enable = 0
-		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.sp -= 2
+		hi, lo := pairToBytes(state.pc)
+		writeByteToMemory(state, hi, state.sp-1)
+		writeByteToMemory(state, lo, state.sp-2)
 		state.sp -= 2
 		state.pc = bytesToPair(0x00, 0x20)
 	case 0xe8: // RPE
@@ -953,11 +1052,23 @@ func Emulate8080(state *state8080) int {
 		state.d, state.e = h, l
 	case 0xec: // CPE
 		if state.cc.p == 1 {
+			// ret := state.pc + 2
+			// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			// state.sp -= 2
+			// hi := state.memory[state.pc+1]
+			// lo := state.memory[state.pc]
+			// state.pc = bytesToPair(hi, lo)
 			ret := state.pc + 2
-			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
+			hi, lo := pairToBytes(ret)
+			writeByteToMemory(state, hi, state.sp-1)
+			writeByteToMemory(state, lo, state.sp-2)
+			//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
 			state.sp -= 2
-			hi := state.memory[state.pc+1]
-			lo := state.memory[state.pc]
+
+			hi = state.memory[state.pc+1]
+			lo = state.memory[state.pc]
 			state.pc = bytesToPair(hi, lo)
 		} else {
 			state.pc += 2
@@ -970,7 +1081,11 @@ func Emulate8080(state *state8080) int {
 	case 0xef: // RST 5
 		// push pc to stack and jump to 0x0028
 		state.int_enable = 0
-		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.sp -= 2
+		hi, lo := pairToBytes(state.pc)
+		writeByteToMemory(state, hi, state.sp-1)
+		writeByteToMemory(state, lo, state.sp-2)
 		state.sp -= 2
 		state.pc = bytesToPair(0x00, 0x28)
 	case 0xf0: // RP
@@ -993,19 +1108,33 @@ func Emulate8080(state *state8080) int {
 		state.int_enable = 0
 	case 0xf4: // CP
 		if state.cc.s == 0 {
+			// ret := state.pc + 2
+			// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			// state.sp -= 2
+			// hi := state.memory[state.pc+1]
+			// lo := state.memory[state.pc]
+			// state.pc = bytesToPair(hi, lo)
 			ret := state.pc + 2
-			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
+			hi, lo := pairToBytes(ret)
+			writeByteToMemory(state, hi, state.sp-1)
+			writeByteToMemory(state, lo, state.sp-2)
+			//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
 			state.sp -= 2
-			hi := state.memory[state.pc+1]
-			lo := state.memory[state.pc]
+
+			hi = state.memory[state.pc+1]
+			lo = state.memory[state.pc]
 			state.pc = bytesToPair(hi, lo)
 		} else {
 			state.pc += 2
 		}
 	case 0xf5: // PUSH PSW
 		psw := setPSW(state)
-		state.memory[state.sp-1] = state.a
-		state.memory[state.sp-2] = psw
+		// state.memory[state.sp-1] = state.a
+		// state.memory[state.sp-2] = psw
+		writeByteToMemory(state, state.a, state.sp-1)
+		writeByteToMemory(state, psw, state.sp-2)
 		state.sp -= 2
 	case 0xf6: // ORI
 		state.a = state.a | state.memory[state.pc]
@@ -1014,7 +1143,11 @@ func Emulate8080(state *state8080) int {
 	case 0xf7: // RST 6
 		// push pc to stack and jump to 0x0030
 		state.int_enable = 0
-		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.sp -= 2
+		hi, lo := pairToBytes(state.pc)
+		writeByteToMemory(state, hi, state.sp-1)
+		writeByteToMemory(state, lo, state.sp-2)
 		state.sp -= 2
 		state.pc = bytesToPair(0x00, 0x30)
 	case 0xf8: // RM
@@ -1034,11 +1167,23 @@ func Emulate8080(state *state8080) int {
 		state.int_enable = 1
 	case 0xfc: // CM
 		if state.cc.s == 1 {
+			// ret := state.pc + 2
+			// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+			// state.sp -= 2
+			// hi := state.memory[state.pc+1]
+			// lo := state.memory[state.pc]
+			// state.pc = bytesToPair(hi, lo)
 			ret := state.pc + 2
-			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
+			hi, lo := pairToBytes(ret)
+			writeByteToMemory(state, hi, state.sp-1)
+			writeByteToMemory(state, lo, state.sp-2)
+			//state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
+
 			state.sp -= 2
-			hi := state.memory[state.pc+1]
-			lo := state.memory[state.pc]
+
+			hi = state.memory[state.pc+1]
+			lo = state.memory[state.pc]
 			state.pc = bytesToPair(hi, lo)
 		} else {
 			state.pc += 2
@@ -1050,7 +1195,11 @@ func Emulate8080(state *state8080) int {
 	case 0xff: // RST 7
 		// push pc to stack and jump to 0x0038
 		state.int_enable = 0
-		state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(state.pc)
+		// state.sp -= 2
+		hi, lo := pairToBytes(state.pc)
+		writeByteToMemory(state, hi, state.sp-1)
+		writeByteToMemory(state, lo, state.sp-2)
 		state.sp -= 2
 		state.pc = bytesToPair(0x00, 0x38)
 	}
@@ -1059,11 +1208,22 @@ func Emulate8080(state *state8080) int {
 }
 
 func writeByteToMemory(state *state8080, v uint8, addr uint16) {
-	if addr > 0x1FFF {
-		state.memory[addr] = v
+	if state.test_enable != 1 {
+		if addr > 0x1FFF {
+			state.memory[addr] = v
+		} else {
+			fmt.Fprintf(os.Stderr, "writeByteToMemory invalid write address: %x\n", addr)
+			os.Exit(1)
+			return
+		}
 	} else {
-		fmt.Fprintf(os.Stderr, "writeByteToMemory invalid write address: %x\n", addr)
-		os.Exit(1)
-		return
+		state.memory[addr] = v
+	}
+
+}
+func displayStack(state *state8080) {
+	stack := state.memory[0x2000:0x2400]
+	for i, s := range stack {
+		fmt.Printf("loc: %x  value: %x\n", 0x2000+i, s)
 	}
 }

@@ -5,57 +5,6 @@ import (
 	"testing"
 )
 
-func TestCpu(t *testing.T) {
-
-	// cycles := 0
-	// state := InitializeState()
-
-	// now := time.Now()
-	// LoadSpaceInvaders(state)
-	// timer := now
-	// for {
-
-	// 	// RST 1 - middle of the screen interrupt
-	// 	if time.Since(timer) > 30*8000*time.Microsecond && GetIntEnabled(state) == 1 {
-	// 		//Interrupt8080(state, )
-	// 		Restart8080(state, RST1)
-	// 	}
-	// 	// RST 2 - end of screen interrupt
-	// 	if time.Since(timer) > 30*16000*time.Microsecond && GetIntEnabled(state) == 1 {
-	// 		// problem near 17cd db 02	 IN	 $02
-	// 		Restart8080(state, RST2)
-	// 		timer = time.Now()
-	// 	}
-
-	// 	// if state.pc == 0x93 &&
-	// 	// 	state.sp == 0x94 &&
-	// 	// 	state.h == 0x3e &&
-	// 	// 	state.d == 0x1f {
-	// 	// 	fmt.Println("break")
-	// 	// }
-
-	// 	// if cycles == 2707677 {
-	// 	// 	fmt.Println("break")
-	// 	// }
-
-	// 	// INPUT
-	// 	GetInput(state)
-	// 	// OUTPUT
-	// 	GetOutput(state)
-	// 	// fmt.Printf("pc: %x, sp: %x, a: %x, h: %x, l: %x, d: %x, e: %x cycle: %d\n",
-	// 	// 	state.pc,
-	// 	// 	state.sp,
-	// 	// 	state.a,
-	// 	// 	state.h,
-	// 	// 	state.l,
-	// 	// 	state.d,
-	// 	// 	state.e,
-	// 	// 	cycles)
-	// 	fmt.Printf("sp: %x\n", state.sp)
-	// 	cycles += Emulate8080(state)
-
-	//}
-}
 func TestInstructionSTAX(t *testing.T) {
 	tests := []struct {
 		in   []uint8
@@ -68,6 +17,7 @@ func TestInstructionSTAX(t *testing.T) {
 
 	for _, tt := range tests {
 		state := newState8080()
+		state.test_enable = 1
 		state.a = tt.in[1]
 		state.memory = append(state.memory, tt.in[0])
 
