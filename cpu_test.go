@@ -5,6 +5,28 @@ import (
 	"testing"
 )
 
+type comm struct{}
+
+func (c comm) PortIn(state *state8080, port uint8) uint8 {
+	return 0x00
+}
+func (c comm) PortOut(state *state8080, port uint8, value uint8) {
+
+}
+
+func TestInstructionIN(t *testing.T) {
+
+	c := comm{}
+	state := newState8080(c)
+	state.a = 0x01
+	state.memory = append(state.memory, 0xdb)
+	state.memory = append(state.memory, 0x01)
+	Emulate8080(state)
+	if !reflect.DeepEqual(state.a, uint8(0x00)) {
+		t.Errorf("TestInstructionIN(%q)\nhave %v \nwant %v", 0xdb, state.a, 0x00)
+	}
+}
+
 func TestInstructionSTAX(t *testing.T) {
 	tests := []struct {
 		in   []uint8
@@ -16,7 +38,8 @@ func TestInstructionSTAX(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[1]
 		state.memory = append(state.memory, tt.in[0])
 
@@ -41,6 +64,7 @@ func TestInstructionSTAX(t *testing.T) {
 }
 
 func TestInstructionINX(t *testing.T) {
+
 	tests := []struct {
 		in   []uint8
 		want uint16
@@ -58,7 +82,8 @@ func TestInstructionINX(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 
 		state.memory = append(state.memory, instruction)
@@ -139,7 +164,8 @@ func TestInstructionINR(t *testing.T) {
 	var reg uint8
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.memory = append(state.memory, tt.in[0])
 		switch tt.in[0] {
 		case 0x04: // INR B
@@ -229,7 +255,8 @@ func TestInstructionDCR(t *testing.T) {
 	var reg uint8
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.memory = append(state.memory, tt.in[0])
 		switch tt.in[0] {
 		case 0x05: // DCR B
@@ -295,7 +322,8 @@ func TestInstructionRLC(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in
 		state.memory = append(state.memory, 0x07)
 		Emulate8080(state)
@@ -331,7 +359,8 @@ func TestInstructionDAD(t *testing.T) {
 		{[]uint8{0x29, 0x00, 0x00, 0x00, 0xFF}, []uint16{0x01FE, 0}},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 		state.memory = append(state.memory, instruction)
 
@@ -377,7 +406,8 @@ func TestInstructionLDA(t *testing.T) {
 	}
 
 	for _, tt := range ptests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 
 		state.memory = append(state.memory, instruction)
@@ -407,7 +437,8 @@ func TestInstructionLDA(t *testing.T) {
 	}
 
 	for _, tt := range ntests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 
 		state.memory = append(state.memory, instruction)
@@ -442,7 +473,8 @@ func TestInstructionLHLD(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 
 		state.memory = append(state.memory, instruction)
@@ -471,7 +503,8 @@ func TestInstructionCMC(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 		state.cc.cy = tt.in[1]
 
@@ -499,7 +532,8 @@ func TestInstructionSHLD(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 
 		state.memory = append(state.memory, instruction)
@@ -532,7 +566,8 @@ func TestInstructionSTA(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 
 		state.memory = append(state.memory, instruction)
@@ -564,7 +599,8 @@ func TestInstructionLDAX(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 
 		state.memory = append(state.memory, instruction)
@@ -609,7 +645,8 @@ func TestInstructionDCX(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		instruction := tt.in[0]
 
 		state.memory = append(state.memory, instruction)
@@ -669,7 +706,8 @@ func TestInstructionRRC(t *testing.T) {
 		{0xFF, []uint8{0x7F, 1}},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in
 		state.memory = append(state.memory, 0x0f)
 		Emulate8080(state)
@@ -698,7 +736,8 @@ func TestInstructionRAL(t *testing.T) {
 		{[]uint8{0xFF, 1}, []uint8{0xFF, 1}},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.cc.cy = tt.in[1]
 		state.memory = append(state.memory, 0x17)
@@ -728,7 +767,8 @@ func TestInstructionRAR(t *testing.T) {
 		{[]uint8{0xFF, 1}, []uint8{0xFF, 1}},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.cc.cy = tt.in[1]
 		state.memory = append(state.memory, 0x1f)
@@ -755,7 +795,8 @@ func TestInstructionCMA(t *testing.T) {
 		{0x89, 0x76},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in
 		state.memory = append(state.memory, 0x2f)
 		Emulate8080(state)
@@ -782,7 +823,8 @@ func TestInstructionADDB(t *testing.T) {
 		{[]uint8{0xFF, 0xFF}, 0xFE},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.b = tt.in[1]
 		state.memory = append(state.memory, 0x80)
@@ -806,7 +848,8 @@ func TestInstructionADCB(t *testing.T) {
 		{[]uint8{0x3D, 0x42, 1}, 0x80},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.b = tt.in[1]
 		state.cc.cy = tt.in[2]
@@ -830,7 +873,8 @@ func TestInstructionSUBB(t *testing.T) {
 		{[]uint8{0x3E, 0x3E, 0}, 0x00},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.b = tt.in[1]
 		state.memory = append(state.memory, 0x90)
@@ -853,7 +897,8 @@ func TestInstructionSBBB(t *testing.T) {
 		{[]uint8{0x3E, 0x3E, 1}, 0xFF},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.b = tt.in[1]
 		state.cc.cy = tt.in[2]
@@ -877,7 +922,8 @@ func TestInstructionCMPB(t *testing.T) {
 		{[]uint8{0x3E, 0x3E}, []uint8{0x3E, 0x3E}},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.b = tt.in[1]
 		state.memory = append(state.memory, 0xb8)
@@ -906,7 +952,8 @@ func TestInstructionLXI(t *testing.T) {
 	for _, tt := range tests {
 		var hi uint8
 		var lo uint8
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.memory = append(state.memory, tt.in[0])
 		state.memory = append(state.memory, tt.in[1])
 		state.memory = append(state.memory, tt.in[2])
@@ -954,7 +1001,8 @@ func TestInstructionMVI(t *testing.T) {
 	for _, tt := range tests {
 		var hi uint8
 
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 
 		state.memory = append(state.memory, tt.in[0])
 		state.memory = append(state.memory, tt.in[1])
@@ -994,7 +1042,8 @@ func TestInstructionDAA(t *testing.T) {
 		{0x9B, 0x01},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in
 		state.memory = append(state.memory, 0x27)
 		Emulate8080(state)
@@ -1014,7 +1063,8 @@ func TestInstructionANI(t *testing.T) {
 		{[]uint8{0x40, 0x00}, 0x00},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.memory = append(state.memory, 0xe6)
 		state.memory = append(state.memory, tt.in[1])
@@ -1035,7 +1085,8 @@ func TestInstructionXRI(t *testing.T) {
 		{[]uint8{0xFF, 0xDD}, 0x22},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.memory = append(state.memory, 0xee)
 		state.memory = append(state.memory, tt.in[1])
@@ -1056,7 +1107,8 @@ func TestInstructionSBI(t *testing.T) {
 		{[]uint8{0x40, 0x20}, 0x20},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.memory = append(state.memory, 0xde)
 		state.memory = append(state.memory, tt.in[1])
@@ -1076,7 +1128,8 @@ func TestInstructionACI(t *testing.T) {
 		{[]uint8{0x00, 0x00}, 0x00},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.memory = append(state.memory, 0xce)
 		state.memory = append(state.memory, tt.in[1])
@@ -1096,7 +1149,8 @@ func TestInstructionADI(t *testing.T) {
 		{[]uint8{0x00, 0x00}, 0x00},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.memory = append(state.memory, 0xc6)
 		state.memory = append(state.memory, tt.in[1])
@@ -1116,7 +1170,8 @@ func TestInstructionSUI(t *testing.T) {
 		{[]uint8{0x00, 0x00}, 0x00},
 	}
 	for _, tt := range tests {
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.a = tt.in[0]
 		state.memory = append(state.memory, 0xd6)
 		state.memory = append(state.memory, tt.in[1])
@@ -1148,7 +1203,8 @@ func TestInstructionRST0(t *testing.T) {
 }
 
 func TestInstructionCall(t *testing.T) {
-	state := newState8080()
+	c := comm{}
+	state := newState8080(c)
 	state.pc = 0
 	state.sp = 8                              // end of the stack
 	state.memory = append(state.memory, 0xcd) // CALL

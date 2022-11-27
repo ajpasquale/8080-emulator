@@ -6,22 +6,29 @@ import (
 )
 
 var cycles8080 = []int{
-	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, //0x00..0x0f
-	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, //0x10..0x1f
-	4, 10, 16, 5, 5, 5, 7, 4, 4, 10, 16, 5, 5, 5, 7, 4,
-	4, 10, 13, 5, 10, 10, 10, 4, 4, 10, 13, 5, 5, 5, 7, 4,
-	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, //0x40..0x4f
-	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5,
-	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5,
-	7, 7, 7, 7, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 7, 5,
-	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, //0x80..8x4f
-	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
-	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
-	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
-	11, 10, 10, 10, 17, 11, 7, 11, 11, 10, 10, 10, 10, 17, 7, 11, //0xc0..0xcf
-	11, 10, 10, 10, 17, 11, 7, 11, 11, 10, 10, 10, 10, 17, 7, 11,
-	11, 10, 10, 18, 17, 11, 7, 11, 11, 5, 10, 5, 17, 17, 7, 11,
-	11, 10, 10, 4, 17, 11, 7, 11, 11, 5, 10, 4, 17, 17, 7, 11,
+	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4,
+	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4,
+	4, 10, 16, 5, 5, 5, 7, 4, 4, 10, 16, 5, 5, 5, 7,
+	4, 4, 10, 13, 5, 10, 10, 10, 4, 4, 10, 13, 5, 5,
+	5, 7, 4, 5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5,
+	5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5,
+	5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5,
+	5, 7, 5, 7, 7, 7, 7, 7, 7, 7, 7, 5, 5, 5, 5, 5,
+	5, 7, 5, 4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4,
+	4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4,
+	4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4,
+	4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4,
+	4, 7, 4, 11, 10, 10, 10, 17, 11, 7, 11, 11, 10,
+	10, 10, 10, 17, 7, 11, 11, 10, 10, 10, 17, 11,
+	7, 11, 11, 10, 10, 10, 10, 17, 7, 11, 11, 10,
+	10, 18, 17, 11, 7, 11, 11, 5, 10, 5, 17, 17,
+	7, 11, 11, 10, 10, 4, 17, 11, 7, 11, 11, 5,
+	10, 4, 17, 17, 7, 11,
+}
+
+type Communicator interface {
+	PortIn(state *state8080, port uint8) uint8
+	PortOut(state *state8080, port uint8, value uint8)
 }
 
 type conditionCodes struct {
@@ -34,21 +41,22 @@ type conditionCodes struct {
 }
 
 type state8080 struct {
-	a          uint8
-	b          uint8
-	c          uint8
-	d          uint8
-	e          uint8
-	h          uint8
-	l          uint8
-	sp         uint16
-	pc         uint16
-	memory     []uint8
-	cc         conditionCodes
-	int_enable uint8
+	a            uint8
+	b            uint8
+	c            uint8
+	d            uint8
+	e            uint8
+	h            uint8
+	l            uint8
+	sp           uint16
+	pc           uint16
+	memory       []uint8
+	cc           conditionCodes
+	int_enable   uint8
+	communicator Communicator
 }
 
-func newState8080() *state8080 {
+func newState8080(co Communicator) *state8080 {
 	cc := conditionCodes{
 		z:   0,
 		s:   0,
@@ -58,22 +66,23 @@ func newState8080() *state8080 {
 		pad: 0,
 	}
 	return &state8080{
-		a:          0,
-		b:          0,
-		c:          0,
-		d:          0,
-		e:          0,
-		h:          0,
-		l:          0,
-		sp:         0,
-		pc:         0,
-		memory:     make([]uint8, 0, 0x10000), // 16K
-		cc:         cc,
-		int_enable: 0,
+		a:            0,
+		b:            0,
+		c:            0,
+		d:            0,
+		e:            0,
+		h:            0,
+		l:            0,
+		sp:           0,
+		pc:           0,
+		memory:       make([]uint8, 0, 0x10000), // 16K
+		cc:           cc,
+		int_enable:   0,
+		communicator: co,
 	}
 }
 
-func loadFileIntoMemoryAt(state *state8080, file string, offset int) {
+func LoadFileIntoMemoryAt(state *state8080, file string, offset int) {
 	bs, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -82,19 +91,9 @@ func loadFileIntoMemoryAt(state *state8080, file string, offset int) {
 	}
 	state.memory = append(state.memory[:offset], append(bs, state.memory[offset:]...)...)
 }
-func LoadSpaceInvaders(state *state8080) {
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.h", 0x0)    // 0000-07FF
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.g", 0x800)  // 0800-0FFF
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.f", 0x1000) // 1000-17FF
-	loadFileIntoMemoryAt(state, "rom/invaders/invaders.e", 0x1800) // 1800-1FFF
-	for i := 0; i < 8193; i++ {
-		state.memory = append(state.memory, 0xFF)
-	}
 
-}
-
-func InitializeState() *state8080 {
-	return newState8080()
+func InitializeState(c Communicator) *state8080 {
+	return newState8080(c)
 }
 
 func Emulate8080(state *state8080) int {
@@ -726,8 +725,7 @@ func Emulate8080(state *state8080) int {
 			state.pc += 2
 		}
 	case 0xd3: // OUT
-		//fmt.Printf("OUT port: %x  a: %b\n", state.memory[state.pc], state.a)
-		state.pc++
+		state.communicator.PortOut(state, state.memory[state.pc], state.a)
 	case 0xd4: // CNC
 		if state.cc.cy == 0 {
 			ret := state.pc + 2
@@ -766,7 +764,7 @@ func Emulate8080(state *state8080) int {
 		}
 	case 0xdb: // IN
 		//	fmt.Printf("IN port: %x  a: %b\n", state.memory[state.pc], state.a)
-		state.pc++
+		state.a = state.communicator.PortIn(state, state.memory[state.pc])
 	case 0xdc: // CC
 		if state.cc.cy == 1 {
 			ret := state.pc + 2

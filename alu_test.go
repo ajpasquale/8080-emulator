@@ -140,7 +140,8 @@ func TestSetArithmeticFlags(t *testing.T) {
 
 	for _, tt := range tests {
 
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		setArthmeticFlags(state, tt.in)
 
 		if !reflect.DeepEqual(state.cc.cy, tt.want[0]) {
@@ -196,7 +197,8 @@ func TestSetPSW(t *testing.T) {
 
 	for _, tt := range tests {
 
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		state.cc.s = tt.in[0]
 		state.cc.z = tt.in[1]
 		state.cc.ac = tt.in[2]
@@ -228,7 +230,8 @@ func TestSetFlagsFromPSW(t *testing.T) {
 
 	for _, tt := range tests {
 
-		state := newState8080()
+		c := comm{}
+		state := newState8080(c)
 		psw := uint8(tt.in)
 		setFlagsFromPSW(state, psw)
 
