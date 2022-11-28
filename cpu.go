@@ -644,7 +644,7 @@ func Emulate8080(state *state8080) int {
 	case 0xc3: // JMP
 		state.pc = bytesToPair(state.memory[state.pc+1], state.memory[state.pc])
 	case 0xc4: // CNZ
-		if state.cc.z == 1 {
+		if state.cc.z == 0 {
 			ret := state.pc + 2
 			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
 			state.sp -= 2
@@ -683,7 +683,7 @@ func Emulate8080(state *state8080) int {
 		}
 	case 0xcb: // -
 	case 0xcc: // CZ
-		if state.cc.z == 0 {
+		if state.cc.z == 1 {
 			ret := state.pc + 2
 			state.memory[state.sp-1], state.memory[state.sp-2] = pairToBytes(ret)
 			state.sp -= 2
@@ -726,6 +726,7 @@ func Emulate8080(state *state8080) int {
 		}
 	case 0xd3: // OUT
 		state.communicator.PortOut(state, state.memory[state.pc], state.a)
+		state.pc++
 	case 0xd4: // CNC
 		if state.cc.cy == 0 {
 			ret := state.pc + 2
@@ -765,6 +766,7 @@ func Emulate8080(state *state8080) int {
 	case 0xdb: // IN
 		//	fmt.Printf("IN port: %x  a: %b\n", state.memory[state.pc], state.a)
 		state.a = state.communicator.PortIn(state, state.memory[state.pc])
+		state.pc++
 	case 0xdc: // CC
 		if state.cc.cy == 1 {
 			ret := state.pc + 2
@@ -941,7 +943,8 @@ func Emulate8080(state *state8080) int {
 		}
 	case 0xfd: // -
 	case 0xfe: // CPI
-		sub8(state, state.a, state.memory[state.pc])
+		//sub8(state, state.a, state.memory[state.pc])
+		cmpa(state, state.memory[state.pc])
 		state.pc++
 	case 0xff: // RST 7
 		// push pc to stack and jump to 0x0038

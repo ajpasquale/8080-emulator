@@ -23,9 +23,11 @@ func add16(a uint16, b uint16) (uint16, bool) {
 }
 
 func setArthmeticFlags(state *state8080, result uint16) {
+	//res8 := uint8(result & 0xFF)
 	state.cc.cy = Btoi(result > 0xFF)
 	state.cc.z = Btoi((result & 0xFF) == 0) // checking the first 8 bits is zero not the entire result.
 	state.cc.s = Btoi((result & 0x80) == 0x80)
+	//state.cc.s = res8 >> 7
 	state.cc.p = Btoi(bits.OnesCount8(uint8(result&0xFF))%2 == 0)
 }
 
@@ -87,11 +89,11 @@ func sub8(state *state8080, a, b uint8) uint8 {
 	b = twosCompliment(b)
 	res := uint16(a) + uint16(b)
 	setArthmeticFlags(state, res)
-	if state.cc.cy == 1 {
-		state.cc.cy = 0
-	} else {
-		state.cc.cy = 1
-	}
+	// if state.cc.cy == 1 {
+	// 	state.cc.cy = 0
+	// } else {
+	// 	state.cc.cy = 1
+	// }
 	return uint8(res & 0xFF)
 }
 
@@ -99,6 +101,11 @@ func sub8WithBorrow(state *state8080, a, b uint8) uint8 {
 	cy := state.cc.cy
 	res := sub8(state, a, b)
 	res = sub8(state, res, cy)
+	if state.cc.cy == 1 {
+		state.cc.cy = 0
+	} else {
+		state.cc.cy = 1
+	}
 	return uint8(res & 0xFF)
 }
 func twosCompliment(a uint8) uint8 {
@@ -109,4 +116,10 @@ func Btoi(b bool) uint8 {
 		return 1
 	}
 	return 0
+}
+
+func cmpa(state *state8080, value uint8) {
+	result := uint16(state.a) - uint16(value)
+	setArthmeticFlags(state, result)
+	setAuxCarry(state.a, value)
 }

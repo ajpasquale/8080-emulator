@@ -275,3 +275,41 @@ func TestAdd16(t *testing.T) {
 		}
 	}
 }
+
+func TestSub8Flags(t *testing.T) {
+	// tests := []struct {
+	// 	in   []uint8
+	// 	want []uint8
+	// }{
+	// 	// S Z A P C
+	// 	// {[]uint8{0x3E, 0x3E}, []uint8{0, 1, 1, 1, 0}},
+	// 	// {[]uint8{0x4A, 0x40, 0}, []uint8{0, 0, 0, 1, 0}},
+
+	// 	//;A=F5H,C=0,Z=0
+	// 	{[]uint8{0xF5, 0x00, 0}, []uint8{1, 0, 0, 1, 0}},
+	// }
+	// for _, tt := range tests {
+	// 	c := comm{}
+	// 	state := newState8080(c)
+	// 	state.a = tt.in[0]
+	// 	state.b = tt.in[1]
+
+	// 	sub8(state, state.a, state.b)
+	// 	if !reflect.DeepEqual(state.cc.s, tt.want[0]) {
+	// 		t.Errorf("TestSub8Flags(%q)\nhave %v \nwant %v", tt.in, state.cc.s, tt.want[0])
+	// 	}
+	// 	if !reflect.DeepEqual(state.cc.z, tt.want[1]) {
+	// 		t.Errorf("TestSub8Flags(%q)\nhave %v \nwant %v", tt.in, state.cc.z, tt.want[1])
+	// 	}
+	// 	if !reflect.DeepEqual(state.cc.ac, tt.want[2]) {
+	// 		t.Errorf("TestSub8Flags(%q)\nhave %v \nwant %v", tt.in, state.cc.ac, tt.want[2])
+	// 	}
+	// 	if !reflect.DeepEqual(state.cc.p, tt.want[3]) {
+	// 		t.Errorf("TestSub8Flags(%q)\nhave %v \nwant %v", tt.in, state.cc.p, tt.want[3])
+	// 	}
+	// 	if !reflect.DeepEqual(state.cc.cy, tt.want[4]) {
+	// 		t.Errorf("TestSub8Flags(%q)\nhave %v \nwant %v", tt.in, state.cc.cy, tt.want[4])
+	// 	}
+	//}
+
+}
