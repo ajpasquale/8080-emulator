@@ -115,9 +115,9 @@ func Emulate8080(state *state8080) int {
 		bc += 1
 		state.b, state.c = pairToBytes(bc)
 	case 0x04: // INR B
-		state.b = add8(state, state.b, 1)
+		state.b = add8(state, state.b, 1, 0)
 	case 0x05: // DCR B
-		state.b = sub8(state, state.b, 1)
+		state.b = sub8(state, state.b, 1, 0)
 	case 0x06: // MVI B
 		state.b = state.memory[state.pc]
 		state.pc++
@@ -142,9 +142,9 @@ func Emulate8080(state *state8080) int {
 		bc := bytesToPair(state.b, state.c)
 		state.b, state.c = pairToBytes(bc - 1)
 	case 0x0c: // INR C
-		state.c = add8(state, state.c, 1)
+		state.c = add8(state, state.c, 1, 0)
 	case 0x0d: // DCR C
-		state.c = sub8(state, state.c, 1)
+		state.c = sub8(state, state.c, 1, 0)
 	case 0x0e: // MVI C
 		state.c = state.memory[state.pc]
 		state.pc++
@@ -166,9 +166,9 @@ func Emulate8080(state *state8080) int {
 		de += 1
 		state.d, state.e = pairToBytes(de)
 	case 0x14: // INR D
-		state.d = add8(state, state.d, 1)
+		state.d = add8(state, state.d, 1, 0)
 	case 0x15: // DCR D
-		state.d = sub8(state, state.d, 1)
+		state.d = sub8(state, state.d, 1, 0)
 	case 0x16: // MVI D
 		state.d = state.memory[state.pc]
 		state.pc++
@@ -193,9 +193,9 @@ func Emulate8080(state *state8080) int {
 		de := bytesToPair(state.d, state.e)
 		state.d, state.e = pairToBytes(de - 1)
 	case 0x1c: // INR E
-		state.e = add8(state, state.e, 1)
+		state.e = add8(state, state.e, 1, 0)
 	case 0x1d:
-		state.e = sub8(state, state.e, 1)
+		state.e = sub8(state, state.e, 1, 0)
 	case 0x1e: // MVI E
 		state.e = state.memory[state.pc]
 		state.pc++
@@ -210,30 +210,34 @@ func Emulate8080(state *state8080) int {
 		state.h = state.memory[state.pc]
 		state.pc++
 	case 0x22: // SHLD
-		state.memory[state.pc] = state.l
+		// was storing hl in the rom instead of at the address referenced by SHLD
+		lo := state.memory[state.pc]
 		state.pc++
-		state.memory[state.pc] = state.h
+		hi := state.memory[state.pc]
 		state.pc++
+		m := bytesToPair(hi, lo)
+		state.memory[m] = state.l
+		state.memory[m+1] = state.h
 	case 0x23: // INX H
 		hl := bytesToPair(state.h, state.l)
 		hl += 1
 		state.h, state.l = pairToBytes(hl)
 	case 0x24: // INR H
-		state.h = add8(state, state.h, 1)
+		state.h = add8(state, state.h, 1, 0)
 	case 0x25: // DCR H
-		state.h = sub8(state, state.h, 1)
+		state.h = sub8(state, state.h, 1, 0)
 	case 0x26: // MVI H
 		state.h = state.memory[state.pc]
 		state.pc++
 	case 0x27: // DAA
 		lo := state.a & 0xF
 		if lo > 0x09 || state.cc.ac == 1 {
-			state.a = add8(state, state.a, 6)
+			state.a = add8(state, state.a, 6, 0)
 		}
 
 		hi := state.a >> 4
 		if hi > 9 || state.cc.cy == 1 {
-			state.a = add8(state, state.a, 0x60)
+			state.a = add8(state, state.a, 0x60, 0)
 		}
 	case 0x28: // -
 	case 0x29: // DAD H (HL+HL) -> HL
@@ -245,17 +249,20 @@ func Emulate8080(state *state8080) int {
 		}
 		state.h, state.l = pairToBytes(r)
 	case 0x2a: // LHLD
-		state.l = state.memory[state.pc]
+		lo := state.memory[state.pc]
 		state.pc++
-		state.h = state.memory[state.pc]
+		hi := state.memory[state.pc]
 		state.pc++
+		m := bytesToPair(hi, lo)
+		state.l = state.memory[m]
+		state.h = state.memory[m+1]
 	case 0x2b: // DCX H
 		hl := bytesToPair(state.h, state.l)
 		state.h, state.l = pairToBytes(hl - 1)
 	case 0x2c: // INR L
-		state.l = add8(state, state.l, 1)
+		state.l = add8(state, state.l, 1, 0)
 	case 0x2d: //  DCR L
-		state.l = sub8(state, state.l, 1)
+		state.l = sub8(state, state.l, 1, 0)
 	case 0x2e: // MVI L
 		state.l = state.memory[state.pc]
 		state.pc++
@@ -279,10 +286,10 @@ func Emulate8080(state *state8080) int {
 		state.sp++
 	case 0x34: // INR M
 		m := bytesToPair(state.h, state.l)
-		state.memory[m] = add8(state, state.memory[m], 1)
+		state.memory[m] = add8(state, state.memory[m], 1, 0)
 	case 0x35: // DCR M
 		m := bytesToPair(state.h, state.l)
-		state.memory[m] = sub8(state, state.memory[m], 1)
+		state.memory[m] = sub8(state, state.memory[m], 1, 0)
 	case 0x36: // MVI M
 		m := bytesToPair(state.h, state.l)
 		state.memory[m] = state.memory[state.pc]
@@ -309,9 +316,9 @@ func Emulate8080(state *state8080) int {
 	case 0x3b: // DCX SP
 		state.sp--
 	case 0x3c: // INR A
-		state.a = add8(state, state.a, 1)
+		state.a = add8(state, state.a, 1, 0)
 	case 0x3d: // DCR A
-		state.a = sub8(state, state.a, 1)
+		state.a = sub8(state, state.a, 1, 0)
 	case 0x3e: // MVI A
 		state.a = state.memory[state.pc]
 		state.pc++
@@ -457,77 +464,77 @@ func Emulate8080(state *state8080) int {
 		state.a = state.memory[addr]
 	case 0x7f: // MOV A, A
 	case 0x80: // ADD B
-		state.a = add8(state, state.a, state.b)
+		state.a = add8(state, state.a, state.b, 0)
 	case 0x81: // ADD C
-		state.a = add8(state, state.a, state.c)
+		state.a = add8(state, state.a, state.c, 0)
 	case 0x82: // ADD D
-		state.a = add8(state, state.a, state.d)
+		state.a = add8(state, state.a, state.d, 0)
 	case 0x83: // ADD E
-		state.a = add8(state, state.a, state.e)
+		state.a = add8(state, state.a, state.e, 0)
 	case 0x84: // ADD H
-		state.a = add8(state, state.a, state.h)
+		state.a = add8(state, state.a, state.h, 0)
 	case 0x85: // ADD L
-		state.a = add8(state, state.a, state.l)
+		state.a = add8(state, state.a, state.l, 0)
 	case 0x86: // ADD M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-		state.a = add8(state, state.a, m)
+		state.a = add8(state, state.a, m, 0)
 	case 0x87: // ADD A
-		state.a = add8(state, state.a, state.a)
+		state.a = add8(state, state.a, state.a, 0)
 	case 0x88: // ADC B
-		state.a = add8WithCarry(state, state.a, state.b)
+		state.a = add8(state, state.a, state.b, state.cc.cy)
 	case 0x89: // ADC C
-		state.a = add8WithCarry(state, state.a, state.c)
+		state.a = add8(state, state.a, state.c, state.cc.cy)
 	case 0x8a: // ADC D
-		state.a = add8WithCarry(state, state.a, state.d)
+		state.a = add8(state, state.a, state.d, state.cc.cy)
 	case 0x8b: // ADC E
-		state.a = add8WithCarry(state, state.a, state.e)
+		state.a = add8(state, state.a, state.e, state.cc.cy)
 	case 0x8c: // ADC H
-		state.a = add8WithCarry(state, state.a, state.h)
+		state.a = add8(state, state.a, state.h, state.cc.cy)
 	case 0x8d: // ADC L
-		state.a = add8WithCarry(state, state.a, state.l)
+		state.a = add8(state, state.a, state.l, state.cc.cy)
 	case 0x8e: // ADC M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-		state.a = add8WithCarry(state, state.a, m)
+		state.a = add8(state, state.a, m, state.cc.cy)
 	case 0x8f: // ADC A
-		state.a = add8WithCarry(state, state.a, state.a)
+		state.a = add8(state, state.a, state.a, state.cc.cy)
 	case 0x90: // SUB B
-		state.a = sub8(state, state.a, state.b)
+		state.a = sub8(state, state.a, state.b, 0)
 	case 0x91: // SUB C
-		state.a = sub8(state, state.a, state.c)
+		state.a = sub8(state, state.a, state.c, 0)
 	case 0x92: // SUB D
-		state.a = sub8(state, state.a, state.d)
+		state.a = sub8(state, state.a, state.d, 0)
 	case 0x93: // SUB E
-		state.a = sub8(state, state.a, state.e)
+		state.a = sub8(state, state.a, state.e, 0)
 	case 0x94: // SUB H
-		state.a = sub8(state, state.a, state.h)
+		state.a = sub8(state, state.a, state.h, 0)
 	case 0x95: // SUB L
-		state.a = sub8(state, state.a, state.l)
+		state.a = sub8(state, state.a, state.l, 0)
 	case 0x96: // SUB H
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-		state.a = sub8(state, state.a, m)
-	case 0x97: // SUB M
-		state.a = sub8(state, state.a, state.a)
+		state.a = sub8(state, state.a, m, 0)
+	case 0x97: // SUB A
+		state.a = sub8(state, state.a, state.a, 0)
 	case 0x98: // SBB B
-		state.a = sub8WithBorrow(state, state.a, state.b)
+		state.a = sub8(state, state.a, state.b, state.cc.cy)
 	case 0x99: // SBB C
-		state.a = sub8WithBorrow(state, state.a, state.c)
+		state.a = sub8(state, state.a, state.c, state.cc.cy)
 	case 0x9a: // SBB D
-		state.a = sub8WithBorrow(state, state.a, state.d)
+		state.a = sub8(state, state.a, state.d, state.cc.cy)
 	case 0x9b: // SBB E
-		state.a = sub8WithBorrow(state, state.a, state.e)
+		state.a = sub8(state, state.a, state.e, state.cc.cy)
 	case 0x9c: // SBB H
-		state.a = sub8WithBorrow(state, state.a, state.h)
+		state.a = sub8(state, state.a, state.h, state.cc.cy)
 	case 0x9d: // SBB L
-		state.a = sub8WithBorrow(state, state.a, state.l)
+		state.a = sub8(state, state.a, state.l, state.cc.cy)
 	case 0x9e: // SBB M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-		state.a = sub8WithBorrow(state, state.a, m)
+		state.a = sub8(state, state.a, m, state.cc.cy)
 	case 0x9f: // SBB A
-		state.a = sub8WithBorrow(state, state.a, state.a)
+		state.a = sub8(state, state.a, state.a, state.cc.cy)
 	case 0xa0: // ANA B
 		state.a = state.a & state.b
 		setLogicFlags(state)
@@ -606,26 +613,23 @@ func Emulate8080(state *state8080) int {
 		state.a = state.a | state.a
 		setLogicFlags(state)
 	case 0xb8: // CMP B
-		// if rp > a then zero reset & carry set
-		// if rp < a then zero reset & carry reset
-		// if rp == a then zero is set & carry reset
-		sub8(state, state.a, state.b)
+		cmpa(state, state.b)
 	case 0xb9: // CMP C
-		sub8(state, state.a, state.c)
+		cmpa(state, state.c)
 	case 0xba: // CMP D
-		sub8(state, state.a, state.d)
+		cmpa(state, state.d)
 	case 0xbb: // CMP E
-		sub8(state, state.a, state.e)
+		cmpa(state, state.e)
 	case 0xbc: // CMP H
-		sub8(state, state.a, state.h)
+		cmpa(state, state.h)
 	case 0xbd: // CMP L
-		sub8(state, state.a, state.l)
+		cmpa(state, state.l)
 	case 0xbe: // CMP M
 		addr := bytesToPair(state.h, state.l)
 		m := state.memory[addr]
-		sub8(state, state.a, m)
+		cmpa(state, m)
 	case 0xbf: // CMP A
-		sub8(state, state.a, state.a)
+		cmpa(state, state.a)
 	case 0xc0: // RNZ
 		if state.cc.z == 0 {
 			state.pc = bytesToPair(state.memory[state.sp+1], state.memory[state.sp])
@@ -659,7 +663,7 @@ func Emulate8080(state *state8080) int {
 		state.memory[state.sp-2] = state.c
 		state.sp -= 2
 	case 0xc6: // ADI
-		state.a = add8(state, state.a, state.memory[state.pc])
+		state.a = add8(state, state.a, state.memory[state.pc], 0)
 		state.pc++
 	case 0xc7: // RST 0
 		// push pc to stack and jump to 0x0000
@@ -701,7 +705,7 @@ func Emulate8080(state *state8080) int {
 		lo := state.memory[state.pc]
 		state.pc = bytesToPair(hi, lo)
 	case 0xce: // ACI
-		state.a = add8WithCarry(state, state.a, state.memory[state.pc])
+		state.a = add8(state, state.a, state.memory[state.pc], state.cc.cy)
 		state.pc++
 	case 0xcf: // RST 1
 		// push pc to stack and jump to 0x0008
@@ -743,7 +747,7 @@ func Emulate8080(state *state8080) int {
 		state.memory[state.sp-2] = state.e
 		state.sp -= 2
 	case 0xd6: // SUI
-		state.a = sub8(state, state.a, state.memory[state.pc])
+		state.a = sub8(state, state.a, state.memory[state.pc], 0)
 		state.pc++
 	case 0xd7: // RST 2
 		// push pc to stack and jump to 0x0010
@@ -780,7 +784,7 @@ func Emulate8080(state *state8080) int {
 		}
 	case 0xdd: // -
 	case 0xde: // SBI
-		state.a = sub8WithBorrow(state, state.a, state.memory[state.pc])
+		state.a = sub8(state, state.a, state.memory[state.pc], state.cc.cy)
 		state.pc++
 	case 0xdf: // RST 3
 		// push pc to stack and jump to 0x0018

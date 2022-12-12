@@ -32,6 +32,7 @@ func (p pcomm) PortOut(state *state8080, port uint8, value uint8) {
 }
 
 func TestTST8080(t *testing.T) {
+	// fails on line 664
 	state := newState8080(pcomm{})
 	for i := 0; i < 0x100; i++ {
 		state.memory = append(state.memory, 0xFF)

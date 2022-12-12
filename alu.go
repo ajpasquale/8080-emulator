@@ -68,46 +68,34 @@ func setFlagsFromPSW(state *state8080, psw uint8) {
 	state.cc.cy = Btoi(0x01 == (psw & 0x01)) // bit 0 0x01
 }
 
-func add8(state *state8080, a, b uint8) uint8 {
+func add8(state *state8080, a, b, carry uint8) uint8 {
+	b += carry
 	state.cc.ac = setAuxCarry(a, b)
 	res := uint16(a) + uint16(b)
 	setArthmeticFlags(state, res)
 	return uint8(res & 0xFF)
 }
 
-func add8WithCarry(state *state8080, a, b uint8) uint8 {
-	cy := state.cc.cy
-	res := add8(state, a, b)
-	res = add8(state, res, cy)
-	return res
-}
+func sub8(state *state8080, a, b, carry uint8) uint8 {
+	// invert carry
+	if carry == 1 {
+		carry = 0
+	} else {
+		carry = 1
+	}
+	// compliment the value subtracted from reg
+	res := add8(state, a, ^b, carry)
 
-func sub8(state *state8080, a, b uint8) uint8 {
-	// if no overflow then set carry
-	// aux carry, parity, zero are all set and sign is reset
-	state.cc.ac = setAuxCarry(a, b)
-	b = twosCompliment(b)
-	res := uint16(a) + uint16(b)
-	setArthmeticFlags(state, res)
-	// if state.cc.cy == 1 {
-	// 	state.cc.cy = 0
-	// } else {
-	// 	state.cc.cy = 1
-	// }
-	return uint8(res & 0xFF)
-}
-
-func sub8WithBorrow(state *state8080, a, b uint8) uint8 {
-	cy := state.cc.cy
-	res := sub8(state, a, b)
-	res = sub8(state, res, cy)
+	// invert carry again?
 	if state.cc.cy == 1 {
 		state.cc.cy = 0
 	} else {
 		state.cc.cy = 1
 	}
-	return uint8(res & 0xFF)
+
+	return res
 }
+
 func twosCompliment(a uint8) uint8 {
 	return ^a + 1
 }
