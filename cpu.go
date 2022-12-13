@@ -122,9 +122,10 @@ func Emulate8080(state *state8080) int {
 		state.b = state.memory[state.pc]
 		state.pc++
 	case 0x07: // RLC
-		r, cb := shiftLeft8(state.a, 1)
-		state.a = uint8(r + cb)
-		state.cc.cy = cb
+		msb := state.a >> 7
+		state.cc.cy = msb
+		res := uint16(state.a) << 1
+		state.a = uint8(res) + uint8(msb)
 	case 0x08: // -
 	case 0x09: // DAD B (BC+HL) -> HL
 		state.cc.cy = 0
@@ -149,9 +150,14 @@ func Emulate8080(state *state8080) int {
 		state.c = state.memory[state.pc]
 		state.pc++
 	case 0x0f: // RRC
-		r, cy := shiftRight8(state.a, 1)
-		state.a = r
-		state.cc.cy = cy
+		lsb := state.a & 0x1
+		state.cc.cy = lsb
+		res := uint16(state.a) >> 1
+		if state.cc.cy == 1 {
+			state.a = uint8(res) + uint8(0x80)
+		} else {
+			state.a = uint8(res)
+		}
 	case 0x10: // -
 	case 0x11: // LXI D
 		state.e = state.memory[state.pc]
@@ -231,14 +237,22 @@ func Emulate8080(state *state8080) int {
 		state.pc++
 	case 0x27: // DAA
 		lo := state.a & 0xF
+		hi := state.a >> 4
+		correction := uint8(0)
+		cy := state.cc.cy
+
 		if lo > 0x09 || state.cc.ac == 1 {
-			state.a = add8(state, state.a, 6, 0)
+			correction += 0x06
 		}
 
-		hi := state.a >> 4
-		if hi > 9 || state.cc.cy == 1 {
-			state.a = add8(state, state.a, 0x60, 0)
+		if hi > 0x9 || state.cc.cy == 1 || (hi >= 0x09 && lo > 0x09) {
+			correction += 0x60
+			cy = 1
 		}
+
+		state.a = add8(state, state.a, correction, 0)
+		state.cc.cy = cy
+
 	case 0x28: // -
 	case 0x29: // DAD H (HL+HL) -> HL
 		state.cc.cy = 0
@@ -808,9 +822,15 @@ func Emulate8080(state *state8080) int {
 			state.pc += 2
 		}
 	case 0xe3: // XTHL
-		hl := bytesToPair(state.h, state.l)
-		state.h, state.l = pairToBytes(state.sp)
-		state.sp = hl
+		h := state.h
+		l := state.l
+
+		state.l = state.memory[state.sp]
+		state.h = state.memory[state.sp+1]
+
+		state.memory[state.sp] = l
+		state.memory[state.sp+1] = h
+
 	case 0xe4: // CPO
 		if state.cc.p == 0 {
 			ret := state.pc + 2
@@ -881,8 +901,8 @@ func Emulate8080(state *state8080) int {
 			state.sp += 2
 		}
 	case 0xf1: // POP PSW
-		state.a = state.memory[state.sp]
-		psw := state.memory[state.sp+1]
+		state.a = state.memory[state.sp+1]
+		psw := state.memory[state.sp]
 		setFlagsFromPSW(state, psw)
 		state.sp += 2
 	case 0xf2: // JP
